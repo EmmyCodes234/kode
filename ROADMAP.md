@@ -18,7 +18,7 @@ C:\kode
 ```
 
 **Vendor model over git fork:** Clean-slate repo (`git init`) with opencode in
-`third_party/opencode/` avoids upstream cadence pressure. Updates pulled on our
+`vendored/opencode/` avoids upstream cadence pressure. Updates pulled on our
 schedule (zig or subtree).
 
 ---

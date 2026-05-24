@@ -15,7 +15,7 @@ func init() {
 		Short: "Launch the Kode terminal UI",
 		Long: `Launch the interactive Kode terminal user interface.
 
-This runs the TypeScript TUI from the vendored opencode monorepo.
+This runs the TypeScript TUI from the vendored monorepo.
 Additional arguments after -- are passed through to the TUI.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return launchTUI(args)
@@ -39,14 +39,14 @@ func launchTUI(passthroughArgs []string) error {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "TUI requires bun and node_modules. Setup:\n")
 		fmt.Fprintf(os.Stderr, "  1. npm install -g bun\n")
-		fmt.Fprintf(os.Stderr, "  2. cd third_party/opencode && bun install\n")
+		fmt.Fprintf(os.Stderr, "  2. cd vendored/opencode && bun install\n")
 		fmt.Fprintf(os.Stderr, "  3. kode tui\n")
 		return fmt.Errorf("bun not found in PATH")
 	}
 
 	// Check node_modules exist
 	if _, err := os.Stat(filepath.Join(tuiDir, "node_modules")); os.IsNotExist(err) {
-		fmt.Fprintf(os.Stderr, "node_modules not found. Run: cd third_party/opencode && bun install\n")
+		fmt.Fprintf(os.Stderr, "node_modules not found. Run: cd vendored/opencode && bun install\n")
 		return fmt.Errorf("node_modules not installed")
 	}
 
@@ -75,14 +75,14 @@ func findTUIDir() (string, error) {
 	if err == nil {
 		selfDir := filepath.Dir(selfPath)
 		searchDirs = append(searchDirs,
-			filepath.Join(selfDir, "..", "third_party", "opencode", "packages", "opencode"),
-			filepath.Join(selfDir, "..", "..", "third_party", "opencode", "packages", "opencode"),
+			filepath.Join(selfDir, "..", "vendor", "opencode"),
+			filepath.Join(selfDir, "..", "..", "vendor", "opencode"),
 		)
 	}
 
 	cwd, _ := os.Getwd()
 	if cwd != "" {
-		searchDirs = append(searchDirs, filepath.Join(cwd, "third_party", "opencode", "packages", "opencode"))
+		searchDirs = append(searchDirs, filepath.Join(cwd, "vendored", "opencode"))
 	}
 
 	for _, dir := range searchDirs {
@@ -95,5 +95,5 @@ func findTUIDir() (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("TUI directory not found. Expected at: third_party/opencode/packages/opencode/")
+	return "", fmt.Errorf("TUI directory not found. Expected at: vendored/opencode/")
 }

@@ -44,7 +44,7 @@ Binary: ~10MB single executable, zero CGo
 
 ```bash
 npm install -g bun
-cd third_party/opencode
+cd vendored/opencode
 bun install
 cd ../..
 kode tui
