@@ -1,0 +1,16 @@
+{
+  "hunks": [
+    {
+      "id": "h1",
+      "file_path": "testdata/hello.go",
+      "action": "MODIFY",
+      "anchor_text": "func hello() string {\n\treturn \"hello\"\n}",
+      "new_text": "func hello() string {\n\treturn \"hello world\"\n}"
+    }
+  ],
+  "original_files": {
+    "testdata/hello.go": "package main\n\nfunc hello() string {\n\treturn \"hello\"\n}\n\nfunc main() {\n\tprintln(hello())\n}\n"
+  },
+  "block_architecture": false,
+  "architecture_rules": []
+}

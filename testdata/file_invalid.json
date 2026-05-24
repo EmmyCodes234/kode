@@ -1,0 +1,7 @@
+{
+  "files": {
+    "testdata/hello.go": "package main\n\nfunc hello() string\n\treturn \"hello\"\n}\n\nfunc main() {\n\tprintln(hello())\n}\n"
+  },
+  "block_architecture": false,
+  "architecture_rules": []
+}

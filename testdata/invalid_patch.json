@@ -1,0 +1,22 @@
+{
+  "hunks": [
+    {
+      "id": "h1",
+      "file_path": "testdata/hello.go",
+      "action": "MODIFY",
+      "anchor_text": "func hello() string {",
+      "new_text": "func hello() string {"
+    },
+    {
+      "id": "h2",
+      "file_path": "testdata/hello.go",
+      "action": "DELETE",
+      "anchor_text": "\treturn \"hello\"\n}"
+    }
+  ],
+  "original_files": {
+    "testdata/hello.go": "package main\n\nfunc hello() string {\n\treturn \"hello\"\n}\n\nfunc main() {\n\tprintln(hello())\n}\n"
+  },
+  "block_architecture": false,
+  "architecture_rules": []
+}
