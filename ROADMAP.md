@@ -79,10 +79,10 @@ for non-OpenAI providers (Anthropic, Google, Groq, etc.).
 
 The Plan → Generate → Verify → Apply → Test cycle, fully automated.
 
-- [ ] `kode loop <task>` — entry point for the full cycle
-- [ ] Auto-retry on verify failure (3 rounds, already built in executor)
-- [ ] Test step (run `go test`, `npm test`, or custom command after apply)
-- [ ] Rollback on test failure (restore from snapshot)
+- [x] `kode loop <task>` — entry point for the full cycle
+- [x] Auto-retry on verify failure (3 rounds, already built in executor)
+- [x] Test step (run `go test`, `npm test`, or custom command after apply)
+- [x] Rollback on test failure (restore from snapshot)
 
 ---
 

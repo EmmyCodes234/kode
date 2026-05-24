@@ -26,6 +26,7 @@ Go binary as a verification oracle before writing patches to disk.
 - `kode verify --input <file>` — Verify file content through 4-gate check
 - `kode generate <prompt>` — Generate patches via LLM (OpenAI-compatible API)
 - `kode run <prompt>` — Full generate→verify→apply pipeline (alias for generate --apply)
+- `kode loop <task>` — Full Plan→Generate→Verify→Apply→Test cycle with rollback
 - `kode stats` — Analyze gatekeeper audit log
 
 ## Build
@@ -34,7 +35,7 @@ Go binary as a verification oracle before writing patches to disk.
 go build -o bin/kode.exe ./cmd/kode
 ```
 
-Tests: `go test ./...` (104+ tests across 6 packages)
+Tests: `go test ./...` (121 tests across 6 packages)
 Binary: ~10MB single executable, zero CGo
 
 ## Upstream
