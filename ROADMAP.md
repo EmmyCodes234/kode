@@ -61,14 +61,17 @@ loop, we need an LLM provider interface in Go.
 - **B:** Implement a lightweight Go LLM client (OpenAI/Anthropic only, ~200 lines)
 - **C:** Use opencode's SDK as a subprocess (heavier but more complete)
 
-**Recommendation: A** — minimal Go harness that spawns a Bun script calling
-opencode's provider layer. This reuses 75+ provider implementations without
-rewriting them.
+**Implementation: Native Go OpenAI-compatible client** — works with any
+OpenAI-compatible endpoint (OpenAI, LiteLLM, Ollama, local inference).
+Configured via env vars: KODE_LLM_API_KEY, KODE_LLM_ENDPOINT, KODE_LLM_MODEL.
 
-- [ ] `kode generate <prompt>` — call LLM, return structured hunks
-- [ ] `kode apply <hunks>` — verify + apply (wraps existing verify + disk write)
-- [ ] `kode run <prompt>` — full generate → verify → apply pipeline
-- [ ] Wire `--model` flag through to the LLM provider
+Bun-based opencode provider federation is available as a future extension
+for non-OpenAI providers (Anthropic, Google, Groq, etc.).
+
+- [x] `kode generate <prompt>` — call LLM, return structured hunks
+- [x] `kode run <prompt>` — full generate → verify → apply pipeline (--apply flag on generate)
+- [x] Wire `--model` flag through to the LLM provider
+- [ ] `kode apply <hunks>` — verify + apply directly from a JSON file (can use verify --input)
 
 ---
 
