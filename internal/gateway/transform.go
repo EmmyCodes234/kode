@@ -106,12 +106,17 @@ func (s *Server) proxyToOpenModel(w http.ResponseWriter, r *http.Request, body [
 }
 
 func convertAnthropicToOpenAI(anthResp map[string]any, origReq map[string]any) map[string]any {
-	// Extract content text from Anthropic response
+	// Extract text content from Anthropic response (skip thinking blocks)
 	content := ""
-	if contentArr, ok := anthResp["content"].([]any); ok && len(contentArr) > 0 {
-		if firstBlock, ok := contentArr[0].(map[string]any); ok {
-			if t, ok := firstBlock["text"].(string); ok {
-				content = t
+	if contentArr, ok := anthResp["content"].([]any); ok {
+		for _, block := range contentArr {
+			if b, ok := block.(map[string]any); ok {
+				if t, ok := b["type"].(string); ok && t == "text" {
+					if txt, ok := b["text"].(string); ok {
+						content = txt
+						break
+					}
+				}
 			}
 		}
 	}
@@ -127,6 +132,20 @@ func convertAnthropicToOpenAI(anthResp map[string]any, origReq map[string]any) m
 		case "tool_use":
 			stopReason = "tool_calls"
 		}
+	}
+
+	// Extract usage with safe type assertions
+	promptTokens := 0
+	completionTokens := 0
+	totalTokens := 0
+	if usage, ok := anthResp["usage"].(map[string]any); ok {
+		if v, ok := usage["input_tokens"].(float64); ok {
+			promptTokens = int(v)
+		}
+		if v, ok := usage["output_tokens"].(float64); ok {
+			completionTokens = int(v)
+		}
+		totalTokens = promptTokens + completionTokens
 	}
 
 	// Build OpenAI-compatible response
@@ -146,9 +165,9 @@ func convertAnthropicToOpenAI(anthResp map[string]any, origReq map[string]any) m
 			},
 		},
 		"usage": map[string]any{
-			"prompt_tokens":     anthResp["usage"].(map[string]any)["input_tokens"],
-			"completion_tokens": anthResp["usage"].(map[string]any)["output_tokens"],
-			"total_tokens":      anthResp["usage"].(map[string]any)["input_tokens"].(float64) + anthResp["usage"].(map[string]any)["output_tokens"].(float64),
+			"prompt_tokens":     promptTokens,
+			"completion_tokens": completionTokens,
+			"total_tokens":      totalTokens,
 		},
 	}
 }
