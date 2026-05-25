@@ -73,6 +73,15 @@ func (c *Client) Chat(ctx context.Context, req ChatRequest) (*ChatResponse, erro
 		return nil, fmt.Errorf("%w: decode response: %v", ErrAPIRequest, err)
 	}
 
+	if chatResp.Usage == nil {
+		var usageResp struct {
+			Usage *Usage `json:"usage"`
+		}
+		if err := json.Unmarshal(respBody, &usageResp); err == nil && usageResp.Usage != nil {
+			chatResp.Usage = usageResp.Usage
+		}
+	}
+
 	if chatResp.Error != nil && chatResp.Error.Message != "" {
 		return nil, fmt.Errorf("%w: %s (%s)", ErrAPIRequest, chatResp.Error.Message, chatResp.Error.Type)
 	}

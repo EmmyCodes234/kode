@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/kode/kode/internal/graph"
+	"github.com/kode/kode/internal/revert"
 	"github.com/kode/kode/internal/verify"
 )
 
@@ -60,6 +61,39 @@ func (e *Executor) ExecuteTransaction(ctx context.Context, taskID string, projec
 		return summary, fmt.Errorf("failed to load initial file state: %w", err)
 	}
 
+	// TDD mode: ensure test files exist before prod code is written
+	fmt.Fprintf(os.Stderr, "KODE_GATE: tdd\n")
+	if reqCtx.TDDMode {
+		hasTest := false
+		hasProd := false
+		for _, h := range initialHunks {
+			if verify.IsTestFile(h.FilePath) {
+				hasTest = true
+			} else {
+				hasProd = true
+			}
+		}
+		if hasProd && !hasTest {
+			return summary, fmt.Errorf("TDD mode: write or modify a test file before modifying production code")
+		}
+		if hasTest {
+			testCmd := reqCtx.TestCommand
+			if testCmd == "" {
+				testCmd = DetectTestCommand(projectRoot)
+			}
+			enforcer := verify.NewTDDEnforcer(projectRoot).WithTestCommand(testCmd)
+			affectedFiles := make([]string, len(initialHunks))
+			for i, h := range initialHunks {
+				affectedFiles[i] = h.FilePath
+			}
+			result := enforcer.Check(affectedFiles, testCmd)
+			if hasProd && result.TestRan && !result.TestPassed {
+				summary.FailedHunks["tdd"] = verify.TDDSummary(result)
+				return summary, fmt.Errorf("TDD mode: tests failed after applying changes: %s", verify.TDDSummary(result))
+			}
+		}
+	}
+
 	// Group hunks by file path, preserving order within each file
 	hunksByFile := groupHunksByFile(initialHunks)
 
@@ -110,15 +144,17 @@ func (e *Executor) ExecuteTransaction(ctx context.Context, taskID string, projec
 			return summary, fmt.Errorf("transaction aborted after %d rounds: %d hunks still failing", round, len(currentRoundFailed))
 		}
 
-		// Build repair prompts for failed hunks (in production, sent to LLM)
 		var repairedHunks []StructuredHunk
 		for _, fh := range currentRoundFailed {
-			_ = e.correction.BuildRepairPrompt(fh, summary.FailedHunks[fh.ID], allPassingHunks)
-			// In a production integration, this prompt would be dispatched to the LLM.
-			// For the deterministic core, failed hunks are reported and not retried automatically.
+			if reqCtx.RepairFunc != nil {
+				prompt := e.correction.BuildRepairPrompt(fh, summary.FailedHunks[fh.ID], allPassingHunks)
+				repaired, err := reqCtx.RepairFunc(ctx, prompt, fh)
+				if err == nil && len(repaired) > 0 {
+					repairedHunks = append(repairedHunks, repaired...)
+				}
+			}
 		}
 
-		// For Phase 2, we report remaining failures rather than retrying (LLM integration is Phase 3+)
 		if len(repairedHunks) == 0 {
 			summary.Status = StatusFail
 			return summary, fmt.Errorf("self-correction produced no valid replacements for %d failed hunks", len(currentRoundFailed))
@@ -137,11 +173,17 @@ func (e *Executor) ExecuteTransaction(ctx context.Context, taskID string, projec
 	return summary, nil
 }
 
+type RepairFunc func(ctx context.Context, prompt string, hunk StructuredHunk) ([]StructuredHunk, error)
+
 type ExecutionContext struct {
 	OriginalFiles       map[string]string
 	Graph               *graph.ContextGraph
 	BlockOnArchitecture bool
 	ArchitectureRules   []verify.ArchRule
+	MaxBlastRadius      int
+	TDDMode             bool
+	TestCommand         string
+	RepairFunc          RepairFunc
 }
 
 func (e *Executor) verifyHunk(hunk StructuredHunk, content string, ctx ExecutionContext) *verify.CheckResult {
@@ -191,6 +233,18 @@ func (e *Executor) verifyHunk(hunk StructuredHunk, content string, ctx Execution
 		}
 	}
 
+	if ctx.MaxBlastRadius > 0 && ctx.Graph != nil {
+		checker := verify.NewBlastRadiusChecker(ctx.Graph)
+		results, ok := checker.CheckFile(hunk.FilePath, ctx.MaxBlastRadius)
+		if !ok {
+			return &verify.CheckResult{
+				CheckName: "blast_radius",
+				Status:    verify.StatusFail,
+				Message:   checker.Summary(results, ctx.MaxBlastRadius),
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -199,6 +253,7 @@ func (e *Executor) VerifyFileContent(filePath string, content string, ctx Execut
 		return nil
 	}
 
+	fmt.Fprintf(os.Stderr, "KODE_GATE: syntax\n")
 	result := e.syntax.CheckFile(filePath, content)
 	if result.Status == verify.StatusFail {
 		return &result
@@ -214,6 +269,7 @@ func (e *Executor) VerifyFileContent(filePath string, content string, ctx Execut
 	}
 	allowedInternal[filepath.Dir(filePath)] = true
 
+	fmt.Fprintf(os.Stderr, "KODE_GATE: imports\n")
 	result = e.imports.Validate(filePath, content, allowedInternal)
 	if result.Status == verify.StatusFail {
 		return &result
@@ -229,12 +285,14 @@ func (e *Executor) VerifyFileContent(filePath string, content string, ctx Execut
 		}
 	}
 
+	fmt.Fprintf(os.Stderr, "KODE_GATE: calls\n")
 	result = e.calls.CheckFile(filePath, content, allowedPackages, graphEntries)
 	if result.Status == verify.StatusFail {
 		return &result
 	}
 
 	if len(ctx.ArchitectureRules) > 0 {
+		fmt.Fprintf(os.Stderr, "KODE_GATE: architecture\n")
 		result = e.architecture.CheckFile(filePath, content, ctx.ArchitectureRules)
 		if result.Status == verify.StatusFail && ctx.BlockOnArchitecture {
 			return &result
@@ -360,6 +418,11 @@ func (e *Executor) commitToDisk(root string, hunks []StructuredHunk, originalFil
 				return fmt.Errorf("failed to remove %s: %w", absPath, err)
 			}
 		} else {
+			origContent := originalFiles[filePath]
+			if origContent != "" && origContent != content {
+				origLines := strings.Split(origContent, "\n")
+				revert.Record("auto", filePath, 1, len(origLines), origLines)
+			}
 			if err := os.WriteFile(absPath, []byte(content), 0644); err != nil {
 				return fmt.Errorf("failed to write %s: %w", absPath, err)
 			}

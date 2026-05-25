@@ -1,4 +1,4 @@
-import { execFile } from "child_process"
+import { spawn } from "child_process"
 import { accessSync } from "fs"
 import { writeFile, unlink } from "fs/promises"
 import { resolve } from "path"
@@ -16,16 +16,28 @@ export interface VerifyResult {
 
 export type AskHandler = (message: string, details: string) => Promise<"retry" | "force" | "abort">
 
+export type ProgressEvent =
+  | { phase: "gate"; gate: string }
+  | { phase: "verify"; step: string }
+  | { phase: "complete" }
+
+export type ProgressCallback = (event: ProgressEvent) => void
+
 function resolveKodeBinary(): string {
   const envBin = process.env.KODE_BIN
   if (envBin) return resolve(envBin)
 
   const cwd = process.cwd()
-  const candidates = [
-    resolve(cwd, "bin", "kode.exe"),
-    resolve(cwd, "..", "..", "..", "bin", "kode.exe"),
-    resolve(cwd, "..", "..", "..", "..", "..", "bin", "kode.exe"),
-  ]
+  const names = process.platform === "win32" ? ["kode.exe", "kode"] : ["kode", "kode.exe"]
+  const candidates: string[] = []
+  for (const name of names) {
+    candidates.push(
+      resolve(cwd, "bin", name),
+      resolve(cwd, "..", "..", "..", "bin", name),
+      resolve(cwd, "..", "..", "..", "..", "..", "bin", name),
+      resolve(cwd, "node_modules", ".bin", name),
+    )
+  }
   for (const candidate of candidates) {
     try {
       accessSync(candidate)
@@ -38,10 +50,16 @@ function resolveKodeBinary(): string {
 export class VerificationGatekeeper {
   private binaryPath: string
   private askHandler: AskHandler
+  private progressHandler: ProgressCallback | null
 
   constructor(binaryPath?: string, askHandler?: AskHandler) {
     this.binaryPath = binaryPath ?? resolveKodeBinary()
-    this.askHandler = askHandler ?? defaultAskHandler
+    this.askHandler = askHandler ?? globalAskHandler ?? defaultAskHandler
+    this.progressHandler = null
+  }
+
+  onProgress(cb: ProgressCallback): void {
+    this.progressHandler = cb
   }
 
   async verify(files: FileToVerify[], blockArchitecture = false): Promise<VerifyResult> {
@@ -55,19 +73,42 @@ export class VerificationGatekeeper {
     await writeFile(tmpFile, JSON.stringify(input))
 
     try {
-      const { stdout } = await new Promise<{ stdout: string; stderr: string }>((resolvePromise, reject) => {
-        execFile(
-          this.binaryPath,
-          ["verify", "--input", tmpFile, "--project-dir", process.cwd()],
-          { timeout: 30000 },
-          (err, stdout, stderr) => {
-            if (err && (err as NodeJS.ErrnoException).code === "ENOENT") {
-              reject(new Error(`kode binary not found at ${this.binaryPath}`))
-              return
+      const stdout = await new Promise<string>((resolvePromise, reject) => {
+        const proc = spawn(this.binaryPath, ["verify", "--input", tmpFile, "--project-dir", process.cwd()], {
+          timeout: 30000,
+          stdio: ["ignore", "pipe", "pipe"],
+        })
+
+        let stdoutBuf = ""
+
+        proc.stdout!.on("data", (d: Buffer) => {
+          stdoutBuf += d.toString()
+        })
+
+        proc.stderr!.on("data", (d: Buffer) => {
+          const lines = d.toString().split("\n").filter((l) => l.trim())
+          for (const line of lines) {
+            const match = line.match(/^KODE_GATE: (\w+)/)
+            if (match && this.progressHandler) {
+              this.progressHandler({ phase: "gate", gate: match[1] })
             }
-            resolvePromise({ stdout: stdout ?? "", stderr: stderr ?? "" })
-          },
-        )
+          }
+        })
+
+        proc.on("error", (err: NodeJS.ErrnoException) => {
+          if (err.code === "ENOENT") {
+            reject(new Error(`kode binary not found at ${this.binaryPath}`))
+          } else {
+            reject(err)
+          }
+        })
+
+        proc.on("close", (code) => {
+          if (this.progressHandler) {
+            this.progressHandler({ phase: "complete" })
+          }
+          resolvePromise(stdoutBuf)
+        })
       })
 
       return JSON.parse(stdout) as VerifyResult
@@ -120,4 +161,14 @@ async function defaultAskHandler(message: string, details: string): Promise<"ret
   console.error(details)
   console.error("[Kode Gatekeeper] Auto-aborting (no TUI ask handler configured)")
   return "abort"
+}
+
+let globalAskHandler: AskHandler | undefined
+
+export function setAskHandler(handler: AskHandler): void {
+  globalAskHandler = handler
+}
+
+export function getAskHandler(): AskHandler | undefined {
+  return globalAskHandler
 }

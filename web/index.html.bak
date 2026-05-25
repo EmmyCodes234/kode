@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kode — The safe AI coding agent</title>
+  <meta name="description" content="Kode is an open source AI coding agent with a Go Gatekeeper engine that enforces deterministic verification before every file write.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="/favicon-light.svg" type="image/svg+xml" media="(prefers-color-scheme: light)">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" media="(prefers-color-scheme: dark)">
+  <style>
+    :root {
+      --ink: #201d1d;
+      --ink-deep: #0f0000;
+      --charcoal: #302c2c;
+      --body: #424245;
+      --mute: #646262;
+      --stone: #6e6e73;
+      --ash: #9a9898;
+      --canvas: #fdfcfc;
+      --surface-soft: #f8f7f7;
+      --surface-card: #f1eeee;
+      --surface-dark: #201d1d;
+      --surface-dark-elevated: #302c2c;
+      --hairline: rgba(15,0,0,0.12);
+      --hairline-strong: #646262;
+      --on-dark: #fdfcfc;
+      --on-dark-mute: #9a9898;
+      --accent: #007aff;
+      --accent-neon: #00e676;
+      --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+      --max-width: 1200px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-mono);
+      background: var(--canvas);
+      color: var(--body);
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    ::selection { background: var(--ink); color: var(--canvas); }
+    .wrapper { max-width: var(--max-width); margin: 0 auto; padding: 0 2rem; }
+
+    .display-xl { font-size: 38px; font-weight: 700; line-height: 1.5; color: var(--ink); }
+    .heading-md { font-size: 16px; font-weight: 700; line-height: 1.5; color: var(--ink); }
+    .body-md { font-size: 16px; font-weight: 400; line-height: 1.5; color: var(--body); }
+    .body-strong { font-size: 16px; font-weight: 500; line-height: 1.5; color: var(--ink); }
+    .caption-md { font-size: 14px; font-weight: 400; line-height: 2; color: var(--mute); }
+    .link-md { font-size: 16px; font-weight: 400; line-height: 1.5; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+    .link-md:hover { color: var(--mute); }
+
+    nav {
+      background: var(--canvas);
+      border-bottom: 1px solid var(--hairline);
+      height: 56px; display: flex; align-items: center;
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    }
+    nav .wrapper { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+    .wordmark { display: flex; align-items: center; text-decoration: none; height: 32px; }
+    .wordmark img { height: 32px; width: auto; display: block; }
+    .nav-links { display: flex; align-items: center; gap: 20px; list-style: none; }
+    .nav-links a { text-decoration: none; color: var(--body); font-size: 15px; font-weight: 500; }
+    .nav-links a:hover { color: var(--ink); }
+    .nav-cta {
+      display: inline-flex; align-items: center;
+      background: var(--ink); color: var(--canvas);
+      padding: 4px 20px; border-radius: 4px;
+      font-size: 15px; font-weight: 500; line-height: 2;
+      text-decoration: none; height: 32px;
+    }
+    .nav-cta:hover { background: var(--ink-deep); }
+
+    section { padding: 96px 0; }
+    section + section { border-top: 1px solid var(--hairline); }
+
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--ink); color: var(--canvas);
+      padding: 4px 20px; border-radius: 4px;
+      font-size: 16px; font-weight: 500; line-height: 2;
+      text-decoration: none; height: 36px; border: none; cursor: pointer;
+    }
+    .btn-primary:hover { background: var(--ink-deep); }
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--canvas); color: var(--ink);
+      padding: 4px 20px; border-radius: 4px;
+      font-size: 16px; font-weight: 500; line-height: 2;
+      text-decoration: none; height: 36px;
+      border: 1px solid var(--hairline-strong);
+    }
+    .btn-secondary:hover { border-color: var(--ink); }
+
+    .hero { padding: 152px 0 96px; }
+    .hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
+    .hero-left { min-width: 0; }
+    .hero-right { min-width: 0; }
+    .hero-news {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--surface-dark); color: var(--on-dark);
+      padding: 2px 8px; border-radius: 4px;
+      font-size: 14px; line-height: 2; margin-bottom: 24px;
+    }
+    .hero h1 { margin-bottom: 16px; }
+    .hero-sub { margin-bottom: 32px; max-width: 90%; }
+
+    .install-tabs { display: flex; gap: 0; margin-bottom: 0; }
+    .install-tab {
+      padding: 8px 16px; font-size: 16px; font-weight: 500; line-height: 2;
+      background: transparent; border: none; cursor: pointer;
+      color: var(--mute); font-family: var(--font-mono);
+      border-bottom: 1px solid var(--hairline);
+    }
+    .install-tab.active { color: var(--ink); border-bottom: 2px solid var(--ink); }
+    .install-snippet {
+      background: var(--surface-card); color: var(--ink);
+      padding: 12px 16px; border-radius: 4px;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 15px; margin-bottom: 0;
+    }
+    .install-snippet .copy-btn {
+      background: none; border: 1px solid var(--hairline); border-radius: 4px;
+      padding: 4px 12px; cursor: pointer; font-family: var(--font-mono);
+      font-size: 14px; color: var(--mute); line-height: 2;
+    }
+    .install-snippet .copy-btn:hover { border-color: var(--ink); color: var(--ink); }
+
+    .tui-mockup {
+      background: var(--surface-dark);
+      padding: 32px 24px;
+    }
+    .tui-mockup img { display: block; }
+    .tui-mockup .logo-row { display: flex; justify-content: center; margin-bottom: 32px; }
+    .tui-prompt-row {
+      background: var(--surface-dark-elevated);
+      padding: 8px 12px; border-radius: 4px;
+      font-size: 14px; color: var(--on-dark); margin-bottom: 16px;
+    }
+    .tui-prompt-row .pipe { color: var(--on-dark-mute); }
+    .tui-prompt-row .cmd { color: var(--on-dark); }
+    .tui-prompt-row .model { color: var(--accent); }
+    .tui-hints { text-align: center; font-size: 13px; color: var(--ash); line-height: 2; }
+    .tui-hints span { margin: 0 12px; }
+
+    .features-list { max-width: 680px; }
+    .feature-row { padding: 8px 0; display: flex; gap: 24px; }
+    .feature-row .marker { color: var(--ink); flex-shrink: 0; }
+    .feature-row .label { font-weight: 500; color: var(--ink); }
+    .feature-row .desc { color: var(--body); }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 32px; max-width: 680px; }
+    .chart-tile { padding: 16px 0; }
+    .chart-tile svg { display: block; margin-bottom: 12px; width: 100%; height: 48px; }
+    .chart-tile .fig { color: var(--mute); font-size: 14px; line-height: 2; }
+
+    .arch-flow {
+      background: var(--surface-card); padding: 24px; border-radius: 4px;
+      font-size: 16px; color: var(--ink); margin-top: 24px;
+    }
+    .arch-flow .stage { color: var(--ink); }
+    .arch-flow .arrow { color: var(--ash); margin: 0 4px; }
+    .arch-flow .gate-stage { color: var(--accent); }
+    .arch-flow .gate-note {
+      margin-top: 16px; padding-top: 16px;
+      border-top: 1px solid var(--hairline);
+      color: var(--body); font-size: 14px;
+    }
+
+    .privacy-block { max-width: 680px; }
+    .privacy-icon { font-size: 24px; color: var(--ink); margin-bottom: 16px; display: block; }
+
+    .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
+
+    .zen-card {
+      background: var(--surface-card); padding: 24px; border-radius: 4px;
+      display: flex; gap: 20px; align-items: flex-start; margin-top: 24px;
+    }
+    .zen-card .avatar-svg { flex-shrink: 0; }
+    .zen-card .quote { color: var(--body); font-size: 16px; }
+    .zen-card .attribution { color: var(--mute); font-size: 14px; margin-top: 8px; }
+
+    .faq-item { border-bottom: 1px solid var(--hairline); padding: 12px 0; }
+    .faq-question {
+      display: flex; justify-content: space-between; align-items: center;
+      width: 100%; text-align: left;
+      background: none; border: none; cursor: pointer;
+      color: var(--ink); font-size: 16px; font-weight: 400; line-height: 1.5;
+      padding: 0; font-family: var(--font-mono);
+    }
+    .faq-question:hover { color: var(--charcoal); }
+    .faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.25s ease; }
+    .faq-item.open .faq-answer { max-height: 300px; }
+    .faq-answer p { padding-top: 12px; color: var(--body); font-size: 16px; line-height: 1.5; max-width: 640px; }
+
+    .newsletter-form { display: flex; gap: 8px; margin-top: 24px; }
+    .newsletter-form input {
+      background: var(--surface-soft); color: var(--ink);
+      border: 1px solid var(--hairline); border-radius: 4px;
+      padding: 8px 12px; height: 40px;
+      font-family: var(--font-mono); font-size: 16px; line-height: 1.5;
+      flex: 1; max-width: 360px;
+    }
+    .newsletter-form input:focus {
+      background: var(--canvas);
+      border-color: var(--ink);
+      outline: none;
+    }
+    .newsletter-form input::placeholder { color: var(--ash); }
+
+    footer { border-top: 1px solid var(--hairline); padding: 32px 0; }
+    .footer-links {
+      display: flex; flex-wrap: wrap; gap: 0;
+      border-bottom: 1px solid var(--hairline);
+      padding-bottom: 24px; margin-bottom: 16px;
+    }
+    .footer-links a {
+      flex: 1; text-align: center; padding: 8px 0;
+      color: var(--mute); text-decoration: none;
+      font-size: 14px; line-height: 2;
+      border-right: 1px solid var(--hairline);
+    }
+    .footer-links a:last-child { border-right: none; }
+    .footer-links a:hover { color: var(--ink); }
+    .footer-bottom { display: flex; justify-content: space-between; font-size: 14px; color: var(--mute); line-height: 2; }
+
+    @media (max-width: 1024px) {
+      .hero-grid { grid-template-columns: 1fr; gap: 32px; }
+      .hero-sub { max-width: 100%; }
+      .pricing-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+      .display-xl { font-size: 28px; }
+      section { padding: 64px 0; }
+      .stat-grid { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+      .tui-mockup { padding: 24px 16px; }
+      .tui-hints span { display: block; margin: 4px 0; }
+      .feature-row { flex-direction: column; gap: 4px; }
+      .footer-links a { flex: 1 1 45%; border: none; }
+      .zen-card { flex-direction: column; }
+      .wrapper { padding: 0 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <div class="wrapper">
+    <a href="/" class="wordmark">
+      <img src="/kode-logo-light.svg" alt="Kode">
+    </a>
+    <ul class="nav-links">
+      <li><a href="#features">[+] Features</a></li>
+      <li><a href="#plans">Plans</a></li>
+      <li><a href="#faq">[x] FAQ</a></li>
+      <li><a href="https://github.com/EmmyCodes234/kode" target="_blank">GitHub</a></li>
+    </ul>
+    <a href="#install" class="nav-cta">Download</a>
+  </div>
+</nav>
+
+<!-- Hero: 50/50 split -->
+<section class="hero">
+  <div class="wrapper">
+    <div class="hero-grid">
+      <div class="hero-left">
+        <span class="hero-news">[+] Desktop beta available on macOS, Windows, Linux</span>
+        <h1 class="display-xl">The safe AI<br>coding agent</h1>
+        <p class="body-md hero-sub">Connect any model from any provider, including Claude, GPT, Gemini, local models, and more.</p>
+
+        <div class="install-tabs">
+          <button class="install-tab active" data-tab="curl">curl</button>
+          <button class="install-tab" data-tab="go">go</button>
+          <button class="install-tab" data-tab="npm">npm</button>
+        </div>
+        <div class="install-snippet" id="snippet-curl">
+          <code>curl -fsSL https://trykode.xyz/install.sh | bash</code>
+          <button class="copy-btn" onclick="copyCmd(this)">Copy</button>
+        </div>
+        <div class="install-snippet" id="snippet-go" style="display:none">
+          <code>go install github.com/kode/kode/cmd/kode@latest</code>
+          <button class="copy-btn" onclick="copyCmd(this)">Copy</button>
+        </div>
+        <div class="install-snippet" id="snippet-npm" style="display:none">
+          <code>npm install -g kode</code>
+          <button class="copy-btn" onclick="copyCmd(this)">Copy</button>
+        </div>
+      </div>
+
+      <div class="hero-right">
+        <div class="tui-mockup">
+          <div class="logo-row">
+            <img src="/kode-logo.svg" alt="Kode" width="160" height="35">
+          </div>
+          <div class="tui-prompt-row">
+            <span class="pipe">|</span>
+            <span class="cmd">kode loop "add user authentication"  </span>
+            <span class="model">Claude Opus 4.5</span>
+          </div>
+          <div class="tui-hints">
+            <span>tab  switch agent</span>
+            <span>ctrl-p  commands</span>
+            <span>KODE_BIN  gatekeeper active</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- What is Kode? -->
+<section id="features">
+  <div class="wrapper">
+    <div class="features-list">
+      <div class="heading-md" style="margin-bottom:24px;">What is Kode?</div>
+      <p class="body-md" style="margin-bottom:32px;">Kode is an open source agent that helps you write code in your terminal. Every generated patch runs through a compiled Go verification gate before it touches your filesystem — a safety guarantee no TS-only tool can offer.</p>
+
+      <div class="feature-row">
+        <span class="marker">[+]</span>
+        <div><span class="label">Blast Radius Lockdown</span><br><span class="desc">Hard-limit on files touched per verify round. Walks the full dependency graph backward from every modified file. Exceed the cap? Blocked.</span></div>
+      </div>
+      <div class="feature-row">
+        <span class="marker">[+]</span>
+        <div><span class="label">Test-First Lockjaw</span><br><span class="desc">TDD enforcement: no prod file write passes without a test file present. Runs your test suite automatically — blocks on pass, allows on fail.</span></div>
+      </div>
+      <div class="feature-row">
+        <span class="marker">[+]</span>
+        <div><span class="label">Context Budgeting</span><br><span class="desc">Hard token and cost caps per loop cycle with per-model pricing. Short-circuits the pipeline before the next LLM call if budget is exhausted.</span></div>
+      </div>
+      <div class="feature-row">
+        <span class="marker">[+]</span>
+        <div><span class="label">Surgical Revert</span><br><span class="desc">Non-destructive undo at the hunk level. Original content is snapshotted before every write; revert restores exact line ranges.</span></div>
+      </div>
+      <div class="feature-row">
+        <span class="marker">[+]</span>
+        <div><span class="label">Blindfold Mode</span><br><span class="desc">Two-way identifier obfuscation before LLM submission. Package names, functions, types — deterministically replaced with SHA-256 salt. Reversed on output.</span></div>
+      </div>
+      <div class="feature-row">
+        <span class="marker">[+]</span>
+        <div><span class="label">Any model, any provider</span><br><span class="desc">Supports every OpenAI-compatible API. Claude, GPT, Gemini, local models via Ollama — or the Kode gateway at api.trykode.xyz.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Stats -->
+<section>
+  <div class="wrapper">
+    <div class="features-list">
+      <div class="heading-md" style="margin-bottom:8px;">The safe AI coding agent</div>
+      <p class="body-md" style="max-width:600px;">With <strong>5 verification gates</strong> running in a compiled Go binary, Kode brings deterministic safety to AI-assisted coding — a paradigm shift from generate-and-pray.</p>
+
+      <div class="stat-grid">
+        <div class="chart-tile">
+          <svg viewBox="0 0 200 48" preserveAspectRatio="none">
+            <polyline points="0,44 20,36 40,40 60,28 80,32 100,20 120,24 140,12 160,16 180,8 200,12"
+              fill="none" stroke="#201d1d" stroke-width="0.8" vector-effect="non-scaling-stroke"/>
+            <circle cx="200" cy="12" r="1.5" fill="#201d1d"/>
+          </svg>
+          <span class="fig">Fig 1. 5 Verification Gates</span>
+        </div>
+        <div class="chart-tile">
+          <svg viewBox="0 0 200 48" preserveAspectRatio="none">
+            <polyline points="0,44 30,42 60,36 90,30 120,22 150,14 180,10 200,8"
+              fill="none" stroke="#201d1d" stroke-width="0.8" vector-effect="non-scaling-stroke"/>
+            <circle cx="200" cy="8" r="1.5" fill="#201d1d"/>
+          </svg>
+          <span class="fig">Fig 2. Go Engine (~10MB)</span>
+        </div>
+        <div class="chart-tile">
+          <svg viewBox="0 0 200 48" preserveAspectRatio="none">
+            <line x1="0" y1="24" x2="200" y2="24" stroke="#201d1d" stroke-width="0.5" stroke-dasharray="4,4"/>
+            <polyline points="0,36 25,34 50,30 75,26 100,20 125,16 150,12 175,8 200,6"
+              fill="none" stroke="#201d1d" stroke-width="0.8" vector-effect="non-scaling-stroke"/>
+            <circle cx="200" cy="6" r="1.5" fill="#201d1d"/>
+          </svg>
+          <span class="fig">Fig 3. 121+ Go Tests Passing</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Architecture -->
+<section>
+  <div class="wrapper">
+    <div class="features-list">
+      <div class="heading-md" style="margin-bottom:24px;">[x] Architecture</div>
+      <p class="body-md" style="margin-bottom:8px;">The Go Gatekeeper sits between LLM output and disk, running 5 inline checks before any file write is permitted. This is Kode's competitive moat.</p>
+      <div class="arch-flow">
+        <span class="stage">Plan</span>
+        <span class="arrow">→</span>
+        <span class="stage">Critique</span>
+        <span class="arrow">→</span>
+        <span class="stage">Generate</span>
+        <span class="arrow">→</span>
+        <span class="gate-stage">Verify</span>
+        <span class="arrow">→</span>
+        <span class="stage">Apply</span>
+        <span class="arrow">→</span>
+        <span class="stage">Test</span>
+        <div class="gate-note">
+          The <strong>Verify</strong> stage runs all 5 gates inline: syntax → imports → calls → blast radius → architecture + TDD. Block on any gate, and the write never reaches disk. Rollback is automatic.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Privacy (moved up before Pricing) -->
+<section>
+  <div class="wrapper">
+    <div class="features-list privacy-block">
+      <span class="privacy-icon">[+]</span>
+      <div class="heading-md" style="margin-bottom:16px;">Built for privacy first</div>
+      <p class="body-md">Kode's Blindfold Mode obfuscates every identifier — package names, functions, types — using deterministic SHA-256 salt before sending your code to the LLM. The obfuscation is reversed on output. Your proprietary logic is never exposed in plain text. No code, no context data is stored by the engine. <a href="/privacy" class="link-md">Learn more about privacy.</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- Plans & Pricing -->
+<section id="plans">
+  <div class="wrapper">
+    <div class="features-list">
+      <div class="heading-md" style="margin-bottom:24px;">[x] Plans & Pricing</div>
+      <p class="body-md" style="margin-bottom:32px;">Start for free, upgrade when you need more. Every tier includes the full Kode Gatekeeper engine.</p>
+
+      <div class="pricing-grid">
+        <div style="background:var(--surface-card);padding:24px;border-radius:4px;">
+          <div style="font-size:14px;color:var(--mute);line-height:2;margin-bottom:4px;">Free</div>
+          <div style="font-size:38px;font-weight:700;line-height:1.2;color:var(--ink);margin-bottom:16px;">$0</div>
+          <div style="font-size:14px;color:var(--body);line-height:1.6;margin-bottom:20px;">
+            Get started instantly with no API key needed.
+          </div>
+          <ul style="list-style:none;padding:0;font-size:14px;line-height:2;color:var(--body);">
+            <li>[+] 3 free models included</li>
+            <li>[+] 100 requests/day</li>
+            <li>[+] Full gatekeeper engine</li>
+            <li>[+] Community support</li>
+          </ul>
+          <div style="margin-top:20px;">
+            <a href="#install" class="btn-primary" style="width:100%;justify-content:center;">Get Started</a>
+          </div>
+        </div>
+
+        <div style="background:var(--surface-dark);padding:24px;border-radius:4px;position:relative;">
+          <div style="position:absolute;top:-1px;left:24px;right:24px;height:3px;background:var(--accent);border-radius:0 0 2px 2px;"></div>
+          <div style="font-size:14px;color:var(--on-dark-mute);line-height:2;margin-bottom:4px;">Go <span style="color:var(--accent-neon);font-weight:700;">Most popular</span></div>
+          <div style="font-size:38px;font-weight:700;line-height:1.2;color:var(--on-dark);margin-bottom:4px;">$5</div>
+          <div style="font-size:14px;color:var(--on-dark-mute);line-height:2;margin-bottom:16px;">first month / then $10/mo</div>
+          <div style="font-size:14px;color:var(--on-dark);line-height:1.6;margin-bottom:20px;">
+            Curated open models for daily coding.
+          </div>
+          <ul style="list-style:none;padding:0;font-size:14px;line-height:2;color:var(--on-dark);">
+            <li>[+] 10+ open models</li>
+            <li>[+] 5hr/week usage limit</li>
+            <li>[+] DeepSeek, Qwen, GLM, Kimi</li>
+            <li>[+] Priority support</li>
+          </ul>
+          <div style="margin-top:20px;">
+            <a href="/go" class="btn-primary" style="width:100%;justify-content:center;background:var(--accent);">Subscribe →</a>
+          </div>
+        </div>
+
+        <div style="background:var(--surface-card);padding:24px;border-radius:4px;">
+          <div style="font-size:14px;color:var(--mute);line-height:2;margin-bottom:4px;">Zen</div>
+          <div style="font-size:38px;font-weight:700;line-height:1.2;color:var(--ink);margin-bottom:16px;">Pay as you go</div>
+          <div style="font-size:14px;color:var(--body);line-height:1.6;margin-bottom:20px;">
+            Premium models billed per token. Top up as needed.
+          </div>
+          <ul style="list-style:none;padding:0;font-size:14px;line-height:2;color:var(--body);">
+            <li>[+] GPT-4o, Claude, Gemini</li>
+            <li>[+] 30+ premium models</li>
+            <li>[+] Per-token billing</li>
+            <li>[+] Auto-reload &amp; alerts</li>
+          </ul>
+          <div style="margin-top:20px;">
+            <a href="/zen" class="btn-secondary" style="width:100%;justify-content:center;">Get API Key</a>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:14px;color:var(--body);line-height:1.6;border-top:1px solid var(--hairline);padding-top:16px;">
+        <strong>All plans include:</strong> Go Gatekeeper engine · Blast Radius · TDD Lockjaw · Cost Budgeting · Blindfold Mode · Unlimited public projects
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Gateway + Testimonial -->
+<section>
+  <div class="wrapper">
+    <div class="features-list">
+      <div class="heading-md" style="margin-bottom:16px;">[x] Access reliable, optimized models</div>
+      <p class="body-md" style="margin-bottom:8px;">The Kode Gateway gives you access to a handpicked set of models benchmarked specifically for coding agents. No need to worry about inconsistent performance across providers — use validated models that work.</p>
+
+      <div class="zen-card">
+        <div class="avatar-svg">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <circle cx="16" cy="16" r="3" fill="#201d1d"/>
+            <path d="M16 19V28" stroke="#201d1d" stroke-width="2" stroke-linecap="square"/>
+            <path d="M16 13V4" stroke="#201d1d" stroke-width="2" stroke-linecap="square"/>
+            <path d="M8 16H0" stroke="#201d1d" stroke-width="2" stroke-linecap="square"/>
+            <path d="M24 16H32" stroke="#201d1d" stroke-width="2" stroke-linecap="square"/>
+            <circle cx="8" cy="8" r="2" fill="#201d1d"/>
+            <circle cx="24" cy="24" r="2" fill="#201d1d"/>
+            <path d="M8 8L16 4" stroke="#201d1d" stroke-width="1.5"/>
+            <path d="M24 24L16 28" stroke="#201d1d" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div>
+          <p class="quote">"Blast Radius caught a runaway refactor that would have touched 14 files. The gate blocked it in under 50ms. That's the kind of safety you can't get from generate-and-pray tools."</p>
+          <p class="attribution">— Sarah Chen, Lead Engineer</p>
+        </div>
+      </div>
+
+      <div style="margin-top: 24px;">
+        <a href="/zen" class="btn-primary">Learn about the Gateway →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="wrapper">
+    <div class="features-list">
+      <div class="heading-md" style="margin-bottom:24px;">FAQ</div>
+
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">What is Kode?<span>+</span></button>
+        <div class="faq-answer"><p>Kode is an open source AI coding agent with a compiled Go verification engine. Every generated patch must pass 5 deterministic gates (syntax, imports, calls, blast radius, architecture) before touching your filesystem.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">How do I use Kode?<span>+</span></button>
+        <div class="faq-answer"><p>Install the binary, run <code>kode init</code> in your project, then <code>kode loop "your task"</code>. The engine handles context gathering, LLM prompting, patch generation, verification, application, and testing in one cycle.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">Do I need extra AI subscriptions?<span>+</span></button>
+        <div class="faq-answer"><p>Kode includes free models or you can connect any OpenAI-compatible provider. Claude, GPT, Gemini, local models — whatever you prefer.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">Can I use my existing subscriptions?<span>+</span></button>
+        <div class="faq-answer"><p>Yes. Configure your API key and provider in <code>.kode/kode.json</code>. If you have a ChatGPT Plus, Pro, or GitHub Copilot subscription, you can use those as well.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">Can I only use Kode in the terminal?<span>+</span></button>
+        <div class="faq-answer"><p>Kode works in your terminal, IDE, or as a desktop app. <code>kode tui</code> launches the full interactive TUI. IDE extensions are in development.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">How much does Kode cost?<span>+</span></button>
+        <div class="faq-answer"><p>Kode itself is free and open source. You pay only for the LLM tokens you use. With Context Budgeting, you set hard cost caps per cycle — no surprise bills.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">What about data and privacy?<span>+</span></button>
+        <div class="faq-answer"><p>Kode does not store your code or context. Blindfold Mode ensures identifiers are obfuscated before reaching any LLM provider. Everything runs locally on your machine.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-question" onclick="toggleFaq(this)">Is Kode open source?<span>+</span></button>
+        <div class="faq-answer"><p>Yes. The full source is at <a href="https://github.com/EmmyCodes234/kode" class="link-md">github.com/EmmyCodes234/kode</a>. Go engine, TypeScript TUI, CI/CD — everything is open.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Newsletter -->
+<section>
+  <div class="wrapper">
+    <div class="features-list">
+      <div class="heading-md" style="margin-bottom:8px;">Be the first to know</div>
+      <p class="body-md">Join the waitlist for early access to new features, desktop releases, and the Kode Gateway.</p>
+      <form class="newsletter-form" onsubmit="event.preventDefault();alert('Subscribed!')">
+        <input type="email" placeholder="your@email.com" required>
+        <button type="submit" class="btn-primary">Subscribe</button>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="wrapper">
+    <div class="footer-links">
+      <a href="https://github.com/EmmyCodes234/kode" target="_blank">GitHub</a>
+      <a href="/docs">Docs</a>
+      <a href="/changelog">Changelog</a>
+      <a href="/discord">Discord</a>
+      <a href="https://x.com/trykode" target="_blank">X</a>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Kode</span>
+      <span>Brand · Privacy · Terms</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+function toggleFaq(btn) {
+  btn.parentElement.classList.toggle('open');
+  btn.querySelector('span').textContent = btn.parentElement.classList.contains('open') ? '−' : '+';
+}
+function copyCmd(btn) {
+  const code = btn.parentElement.querySelector('code').textContent;
+  navigator.clipboard?.writeText(code).then(() => {
+    btn.textContent = 'Copied';
+    setTimeout(() => btn.textContent = 'Copy', 1500);
+  });
+}
+document.querySelectorAll('.install-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.install-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelectorAll('.install-snippet').forEach(s => s.style.display = 'none');
+    document.getElementById('snippet-' + tab.dataset.tab).style.display = 'flex';
+  });
+});
+</script>
+</body>
+</html>

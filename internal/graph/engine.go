@@ -150,6 +150,34 @@ func (e *Engine) BuildSurgicalContext(ctx context.Context, entryFiles []string, 
 				}
 			}
 		}
+
+		for _, call := range parseResult.Calls {
+			if call.Type != "package" {
+				continue
+			}
+			symbolKey := call.Pkg + "." + call.FuncName
+			found := false
+			for _, node := range graph.Nodes {
+				if node.Kind == NodeKindFunction || node.Kind == NodeKindMethod {
+					if strings.Contains(node.Name, call.FuncName) {
+						found = true
+						break
+					}
+				}
+			}
+			if found || visited[symbolKey] {
+				continue
+			}
+			visited[symbolKey] = true
+
+			if resolver, ok := e.resolvers.Get(language); ok {
+				resolvedFiles, err := resolver.ResolveImport(ctx, call.Pkg, projectRoot)
+				if err == nil && currentDepth < MaxDepth && len(resolvedFiles) > 0 {
+					queue = append(queue, resolvedFiles...)
+					currentDepth++
+				}
+			}
+		}
 	}
 
 	return graph, nil

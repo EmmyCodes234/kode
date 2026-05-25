@@ -5,11 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/kode/kode/internal/graph"
-	"github.com/kode/kode/internal/graph/resolvers"
+	"github.com/kode/kode/internal/planner"
 	"github.com/spf13/cobra"
 )
 
@@ -39,38 +38,25 @@ Use --graph for JSON debugging output.`,
 				return fmt.Errorf("cannot get working directory: %w", err)
 			}
 
-			entryFiles := guessEntryFiles(task, projectRoot)
-			if len(entryFiles) == 0 {
-				return fmt.Errorf("could not determine entry files from task: %q.\nTry specifying a file path, e.g.: kode plan \"refactor middleware/auth.go\"", task)
-			}
-
-			fmt.Fprintf(os.Stderr, "Entry files: %v\n", entryFiles)
-			fmt.Fprintf(os.Stderr, "Building context graph (max %d tokens)...\n", maxTokens)
-
-			parser := graph.NewParserWrapper()
-			registry := graph.NewResolverRegistry()
-			registry.Register(&resolvers.GoResolver{})
-			registry.Register(&resolvers.TSResolver{})
-
-			engine := graph.NewEngine(parser, registry)
+			p := planner.NewPlanner(projectRoot)
 
 			ctx := context.Background()
-			g, err := engine.BuildSurgicalContext(ctx, entryFiles, projectRoot, maxTokens)
+			plan, err := p.Plan(ctx, task, maxTokens)
 			if err != nil {
-				return fmt.Errorf("context build failed: %w", err)
+				return fmt.Errorf("plan failed: %w", err)
 			}
 
 			if showGraph {
 				enc := json.NewEncoder(os.Stdout)
 				enc.SetIndent("", "  ")
-				if err := enc.Encode(g); err != nil {
+				if err := enc.Encode(plan.Graph); err != nil {
 					return fmt.Errorf("failed to serialize graph: %w", err)
 				}
 				return nil
 			}
 
 			if showPacket {
-				packet, err := g.ContextPacket(maxTokens)
+				packet, err := plan.Graph.ContextPacket(maxTokens)
 				if err != nil {
 					return fmt.Errorf("failed to build context packet: %w", err)
 				}
@@ -82,17 +68,12 @@ Use --graph for JSON debugging output.`,
 				return nil
 			}
 
-			fmt.Println()
-			fmt.Printf("  Context Graph Summary\n")
-			fmt.Printf("  ─────────────────────\n")
-			fmt.Printf("  Nodes:  %d\n", len(g.Nodes))
-			fmt.Printf("  Edges:  %d\n", len(g.Edges))
-			fmt.Printf("  Tokens: %d / %d\n", g.TotalTokens, maxTokens)
-			fmt.Println()
-			fmt.Println("  Files:")
+			sectionHeader("Context Graph Summary")
+			stepOK("Nodes: %d  |  Edges: %d  |  Tokens: %d / %d", len(plan.Graph.Nodes), len(plan.Graph.Edges), plan.Graph.TotalTokens, maxTokens)
 
+			sectionHeader("Files")
 			fileNodes := make(map[string][]*graph.Node)
-			for _, node := range g.Nodes {
+			for _, node := range plan.Graph.Nodes {
 				if node.Kind == graph.NodeKindFile {
 					continue
 				}
@@ -100,24 +81,24 @@ Use --graph for JSON debugging output.`,
 			}
 
 			for path, symbols := range fileNodes {
-				fmt.Printf("    %s\n", path)
+				stepStart("%s", path)
 				for _, s := range symbols {
 					confidence := ""
-					for _, e := range g.Edges {
+					for _, e := range plan.Graph.Edges {
 						if string(e.Target) == string(s.ID) {
 							confidence = fmt.Sprintf(" [%s]", e.Confidence)
 							break
 						}
 					}
-					fmt.Printf("      ├─ %s: %s%s\n", s.Kind, s.Name, confidence)
+					stepDetail("├─ %s: %s%s", s.Kind, s.Name, confidence)
 				}
 			}
 
-			fmt.Println()
-			fmt.Println("  Imports:")
-			for _, node := range g.Nodes {
-				if node.Kind == graph.NodeKindImport {
-					fmt.Printf("    %s\n", node.Name)
+			sectionHeader("Plan Steps")
+			for i, step := range plan.Steps {
+				stepStart("Step %d: %s", i+1, step.Description)
+				for _, f := range step.Files {
+					stepDetail("  %s", f)
 				}
 			}
 
@@ -129,55 +110,4 @@ Use --graph for JSON debugging output.`,
 	planCmd.Flags().Bool("packet", false, "Output the LLM-ready context packet as JSON")
 	planCmd.Flags().Int("max-tokens", 8000, "Maximum token budget for the context graph")
 	rootCmd.AddCommand(planCmd)
-}
-
-func guessEntryFiles(task string, projectRoot string) []string {
-	var candidates []string
-	for _, word := range strings.Fields(task) {
-		word = strings.Trim(word, "\"'.,;:!?")
-		if strings.Contains(word, "/") || strings.Contains(word, "\\") {
-			candidate := word
-			absCandidate := filepath.Join(projectRoot, candidate)
-			if info, err := os.Stat(absCandidate); err == nil {
-				if !info.IsDir() {
-					candidates = append(candidates, absCandidate)
-				} else {
-					dirFiles, _ := findGoFiles(absCandidate, projectRoot)
-					candidates = append(candidates, dirFiles...)
-				}
-			}
-		}
-	}
-
-	if len(candidates) > 0 {
-		return candidates
-	}
-
-	commons := []string{"main.go", "cmd", "src", "lib", "app", "index.ts", "index.js", "main.ts"}
-	for _, c := range commons {
-		absPath := filepath.Join(projectRoot, c)
-		if info, err := os.Stat(absPath); err == nil {
-			if !info.IsDir() {
-				candidates = append(candidates, absPath)
-			} else {
-				dirFiles, _ := findGoFiles(absPath, projectRoot)
-				candidates = append(candidates, dirFiles...)
-			}
-		}
-	}
-	return candidates
-}
-
-func findGoFiles(dir string, projectRoot string) ([]string, error) {
-	var files []string
-	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return nil
-		}
-		if !d.IsDir() && strings.HasSuffix(path, ".go") {
-			files = append(files, path)
-		}
-		return nil
-	})
-	return files, err
 }

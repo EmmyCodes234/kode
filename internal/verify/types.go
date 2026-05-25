@@ -33,6 +33,7 @@ type VerifyRequest struct {
 	Graph               *graph.ContextGraph
 	BlockOnArchitecture bool
 	ArchitectureRules   []ArchRule
+	MaxBlastRadius      int
 }
 
 type ArchRule struct {

@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/kode/kode/internal/execution"
+	ghostlib "github.com/kode/kode/internal/ghost"
 	"github.com/kode/kode/internal/llm"
+	"github.com/kode/kode/internal/workflow"
 	"github.com/spf13/cobra"
 )
 
@@ -20,22 +21,28 @@ func init() {
 	var contextFile string
 	var testCommand string
 	var projectDir string
+	var branches int
 
 	loopCmd := &cobra.Command{
 		Use:   "loop <task>",
 		Short: "Full Plan → Generate → Verify → Apply → Test cycle",
 		Long: `Run the complete Kode workflow on a task:
-  1. Generate patches via LLM
-  2. Verify and apply to disk
-  3. Run tests
-  4. Rollback on test failure (restore from snapshot)
+   1. Generate patches via LLM
+   2. Verify and apply to disk
+   3. Run tests
+   4. Rollback on test failure (restore from snapshot)
 
-The test command is auto-detected (go test, npm test, cargo test)
-or overridable with --test-command.`,
+With --branches N, Kode runs the task in N parallel git worktrees
+(Ghost Branch mode). Each branch uses a different strategy:
+  Alpha  — lightweight, minimal implementation
+  Beta   — robust, modular architecture
+  Gamma  — performance-optimized, aggressive
+
+Kode scores each result by blast radius, token cost, and speed,
+then merges the winner and discards the rest.`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			task := strings.Join(args, " ")
-			start := time.Now()
 
 			if projectDir == "" {
 				var err error
@@ -59,129 +66,103 @@ or overridable with --test-command.`,
 				return fmt.Errorf("LLM API key not configured.\nSet KODE_LLM_API_KEY or OPENAI_API_KEY environment variable.")
 			}
 
-			// Step 1: Read context if provided
-			contextStr := ""
-			if contextFile != "" {
-				data, err := os.ReadFile(contextFile)
-				if err != nil {
-					return fmt.Errorf("cannot read context file: %w", err)
+			// Ghost Branch mode: run in parallel worktrees
+			if branches > 1 {
+				return runGhostLoop(cmd, absDir, task, branches, &cfg, testCommand)
+			}
+
+			pipe := workflow.NewPipeline(workflow.Config{
+				LLMConfig:    &cfg,
+				ContextFile:  contextFile,
+				TestCommand:  testCommand,
+			})
+
+			start := time.Now()
+
+			pipe.BeforeStage(workflow.StagePlan, func(s *workflow.State) {
+				s.ProjectRoot = absDir
+			})
+
+			pipe.BeforeStage(workflow.StageGenerate, func(s *workflow.State) {
+				sectionHeader("Generating patches")
+				stepStart("Task: %s", task)
+				stepDetail("LLM: %s", cfg.Model)
+			})
+
+			pipe.AfterStage(workflow.StageGenerate, func(s *workflow.State, err error) {
+				if err == nil {
+					genElapsed := time.Since(start).Seconds()
+					stepOK("Generated (%.1fs): %d hunk(s)", genElapsed, len(s.Hunks))
+				} else {
+					stepFail("Generation failed: %v", err)
 				}
-				contextStr = string(data)
-			}
+			})
 
-			// Step 2: Generate patches
-			fmt.Fprintf(os.Stderr, "  Generating patches for: %s\n", task)
-			userPrompt := llm.BuildGeneratePrompt(task, contextStr)
-			client := llm.NewClient(cfg)
+			pipe.BeforeStage(workflow.StageVerify, func(s *workflow.State) {
+				sectionHeader("Verifying patches")
+			})
 
-			fmt.Fprintf(os.Stderr, "  LLM: %s\n", cfg.Model)
-			content, err := client.Generate(context.Background(), llm.SystemPrompt, userPrompt)
-			if err != nil {
-				return fmt.Errorf("LLM call failed: %w", err)
-			}
-
-			genElapsed := time.Since(start).Seconds()
-			fmt.Fprintf(os.Stderr, "  Generated (%.1fs). Parsing...\n", genElapsed)
-
-			parser := execution.NewHunkParser()
-			hunks, err := parser.ParseLLMResponse(content)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed to parse LLM response:\n  %v\n\nRaw response:\n%s\n", err, content)
-				return fmt.Errorf("parse error: %w", err)
-			}
-
-			fmt.Fprintf(os.Stderr, "  %d hunk(s) generated.\n", len(hunks))
-
-			// Step 3: Take snapshot BEFORE applying
-			var affectedFiles []string
-			for _, h := range hunks {
-				found := false
-				for _, af := range affectedFiles {
-					if af == h.FilePath {
-						found = true
-						break
+			pipe.AfterStage(workflow.StageVerify, func(s *workflow.State, err error) {
+				if err == nil {
+					applyElapsed := time.Since(start).Seconds()
+					stepOK("Applied %d hunk(s) (%.1fs)", len(s.Summary.AppliedHunks), applyElapsed)
+				} else {
+					stepFail("Verification failed: %d hunk(s) failed", len(s.Summary.FailedHunks))
+					for id, msg := range s.Summary.FailedHunks {
+						stepDetail("%s: %s", id, msg)
 					}
 				}
-				if !found {
-					affectedFiles = append(affectedFiles, h.FilePath)
-				}
-			}
+			})
 
-			snapshot, err := execution.CreateSnapshot(absDir, affectedFiles)
+			pipe.BeforeStage(workflow.StageTest, func(s *workflow.State) {
+				sectionHeader("Running tests")
+				testCmd := testCommand
+				if testCmd == "" {
+					testCmd = execution.DetectTestCommand(absDir)
+				}
+				stepStart("Command: %s", testCmd)
+			})
+
+			result, err := pipe.Run(context.Background(), task)
 			if err != nil {
-				return fmt.Errorf("snapshot failed: %w", err)
-			}
-
-			// Step 4: Apply patches
-			executor := execution.NewExecutor(absDir)
-
-			summary, err := executor.ExecuteTransaction(context.Background(), task, absDir, hunks, execution.ExecutionContext{})
-			if err != nil {
-				return fmt.Errorf("execution failed: %w", err)
-			}
-
-			if summary.Status != execution.StatusPass {
-				fmt.Fprintf(os.Stderr, "  Verification failed: %d hunk(s) failed.\n", len(summary.FailedHunks))
-				for id, msg := range summary.FailedHunks {
-					fmt.Fprintf(os.Stderr, "    %s: %s\n", id, msg)
-				}
-				return fmt.Errorf("verification failed")
-			}
-
-			applyElapsed := time.Since(start).Seconds()
-			fmt.Fprintf(os.Stderr, "  Applied %d hunk(s) (%.1fs).\n", len(summary.AppliedHunks), applyElapsed)
-
-			// Step 5: Run tests
-			testCmd := testCommand
-			if testCmd == "" {
-				testCmd = execution.DetectTestCommand(absDir)
-			}
-			fmt.Fprintf(os.Stderr, "  Running tests: %s\n", testCmd)
-
-			testCtx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
-			defer cancel()
-
-			testResult := runTestCommand(testCtx, absDir, testCmd)
-
-			if testResult.err != nil {
-				fmt.Fprintf(os.Stderr, "  Tests failed. Rolling back...\n")
-				if restoreErr := snapshot.Restore(absDir); restoreErr != nil {
-					fmt.Fprintf(os.Stderr, "  WARNING: rollback incomplete: %v\n", restoreErr)
-				}
-				fmt.Fprintf(os.Stderr, "  Rollback complete. Files restored to pre-apply state.\n")
-
-				result := map[string]interface{}{
-					"status":         "FAIL",
-					"task":           task,
-					"hunks_applied":  len(summary.AppliedHunks),
-					"test_command":   testCmd,
-					"test_error":     testResult.err.Error(),
-					"test_output":    testResult.output,
-					"duration_seconds": time.Since(start).Seconds(),
-				}
-				enc := json.NewEncoder(os.Stdout)
-				enc.SetIndent("", "  ")
-				enc.Encode(result)
-				return fmt.Errorf("tests failed after applying patches (rolled back)")
+				stepFail("Pipeline failed: %v", err)
 			}
 
 			totalElapsed := time.Since(start).Seconds()
-			result := map[string]interface{}{
-				"status":           "PASS",
-				"task":             task,
-				"hunks_applied":    len(summary.AppliedHunks),
-				"test_command":     testCmd,
-				"duration_seconds": totalElapsed,
-			}
 			enc := json.NewEncoder(os.Stdout)
 			enc.SetIndent("", "  ")
-			enc.Encode(result)
-			fmt.Fprintf(os.Stderr, "  All done (%.1fs).\n", totalElapsed)
 
+			if result != nil && result.Status == execution.StatusPass {
+				stepOK("All done (%.1fs)", totalElapsed)
+				enc.Encode(map[string]interface{}{
+					"status":           "PASS",
+					"task":             task,
+					"hunks_applied":    len(result.State.Summary.AppliedHunks),
+					"test_command":     result.State.Summary,
+					"duration_seconds": totalElapsed,
+				})
+				return nil
+			}
+
+			if result != nil {
+				enc.Encode(map[string]interface{}{
+					"status":           "FAIL",
+					"task":             task,
+					"hunks_applied":    len(result.State.Summary.AppliedHunks),
+					"test_command":     testCommand,
+					"test_error":       result.State.LastError(),
+					"duration_seconds": totalElapsed,
+				})
+			}
+
+			if err != nil {
+				return err
+			}
 			return nil
 		},
 	}
 
+	loopCmd.Flags().IntVar(&branches, "branches", 1, "Ghost Branch count (2-3 enables parallel speculation mode)")
 	loopCmd.Flags().StringVar(&modelFlag, "model", "", "Model override (default: KODE_LLM_MODEL or gpt-4o)")
 	loopCmd.Flags().StringVar(&contextFile, "context-file", "", "Path to context packet JSON from 'kode plan --packet'")
 	loopCmd.Flags().StringVar(&testCommand, "test-command", "", "Test command override (default: auto-detect)")
@@ -189,30 +170,62 @@ or overridable with --test-command.`,
 	rootCmd.AddCommand(loopCmd)
 }
 
-type testRunResult struct {
-	output string
-	err    error
-}
+func runGhostLoop(cmd *cobra.Command, absDir, task string, branches int, cfg *llm.Config, testCmd string) error {
+	sectionHeader("Ghost Branch Mode")
+	stepStart("Task: %s", task)
+	stepDetail("Branches: %d strategies in parallel", branches)
+	stepDetail("LLM: %s", cfg.Model)
+	fmt.Fprintf(os.Stderr, "\n")
 
-func runTestCommand(ctx context.Context, dir string, command string) testRunResult {
-	parts := execution.ParseCommand(command)
-	if len(parts) == 0 {
-		return testRunResult{err: fmt.Errorf("empty test command")}
-	}
+	engine := ghostlib.NewGhostEngine(absDir, cfg, testCmd)
+	defer engine.Cleanup()
 
-	cmd := exec.CommandContext(ctx, parts[0], parts[1:]...)
-	cmd.Dir = dir
-	out, err := cmd.CombinedOutput()
-	output := string(out)
-
+	summary, err := engine.Run(context.Background(), ghostlib.GhostRunConfig{
+		Task:     task,
+		Branches: branches,
+	})
 	if err != nil {
-		if ctx.Err() == context.DeadlineExceeded {
-			return testRunResult{output: output, err: fmt.Errorf("test timed out after 120s")}
-		}
-		return testRunResult{output: output, err: fmt.Errorf("test failed: %v\nOutput:\n%s", err, output)}
+		stepFail("Ghost run failed: %v", err)
+		return err
 	}
 
-	return testRunResult{output: output, err: nil}
-}
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
 
+	for _, b := range summary.Branches {
+		icon := "[x]"
+		statusColor := "PASS"
+		if b.Status == execution.StatusFail {
+			icon = "[!]"
+			statusColor = "FAIL"
+		}
+		if summary.Winner != nil && summary.Winner.ID == b.ID {
+			icon = "[+]"
+			fmt.Fprintf(os.Stderr, "  %s %s (%s) — %s — Score: %.2f — WINNER\n",
+				ansiGreen+icon+ansiReset, b.ID, b.Strategy, statusColor, b.Score)
+		} else {
+			fmt.Fprintf(os.Stderr, "  %s %s (%s) — %s — Score: %.2f\n",
+				icon, b.ID, b.Strategy, statusColor, b.Score)
+		}
+		if b.Error != "" {
+			stepDetail("Error: %s", b.Error)
+		}
+	}
+
+	fmt.Fprintf(os.Stderr, "\n")
+	if summary.Winner != nil {
+		stepOK("Winner: %s (%s) — score %.2f", summary.Winner.ID, summary.Winner.Strategy, summary.Winner.Score)
+	}
+	stepDetail("Total: %.1fs | $%.4f token cost", summary.TotalTime.Seconds(), summary.TotalCost)
+
+	enc.Encode(map[string]interface{}{
+		"status":     "PASS",
+		"task":       task,
+		"branches":   len(summary.Branches),
+		"winner":     summary.Winner,
+		"total_time": summary.TotalTime.Seconds(),
+		"total_cost": summary.TotalCost,
+	})
+	return nil
+}
 

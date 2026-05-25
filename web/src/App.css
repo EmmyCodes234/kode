@@ -1,0 +1,65 @@
+:root {
+  --ink: #201d1d;
+  --ink-deep: #0f0000;
+  --charcoal: #302c2c;
+  --body: #424245;
+  --mute: #646262;
+  --stone: #6e6e73;
+  --ash: #9a9898;
+  --canvas: #fdfcfc;
+  --surface-soft: #f8f7f7;
+  --surface-card: #f1eeee;
+  --surface-dark: #201d1d;
+  --surface-dark-elevated: #302c2c;
+  --hairline: rgba(15,0,0,0.12);
+  --hairline-strong: #646262;
+  --on-dark: #fdfcfc;
+  --on-dark-mute: #9a9898;
+  --accent: #007aff;
+  --accent-neon: #00e676;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+  --max-width: 1200px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-mono);
+  background: var(--canvas);
+  color: var(--body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--ink); color: var(--canvas); }
+.wrapper { max-width: var(--max-width); margin: 0 auto; padding: 0 2rem; }
+
+.display-xl { font-size: 38px; font-weight: 700; line-height: 1.5; color: var(--ink); }
+.heading-md { font-size: 16px; font-weight: 700; line-height: 1.5; color: var(--ink); }
+.body-md { font-size: 16px; font-weight: 400; line-height: 1.5; color: var(--body); }
+.body-strong { font-size: 16px; font-weight: 500; line-height: 1.5; color: var(--ink); }
+.caption-md { font-size: 14px; font-weight: 400; line-height: 2; color: var(--mute); }
+.link-md { font-size: 16px; font-weight: 400; line-height: 1.5; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.link-md:hover { color: var(--mute); }
+
+section { padding: 96px 0; }
+section + section { border-top: 1px solid var(--hairline); }
+
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--ink); color: var(--canvas);
+  padding: 4px 20px; border-radius: 4px;
+  font-size: 16px; font-weight: 500; line-height: 2;
+  text-decoration: none; height: 36px; border: none; cursor: pointer;
+  font-family: var(--font-mono);
+}
+.btn-primary:hover { background: var(--ink-deep); }
+.btn-secondary {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--canvas); color: var(--ink);
+  padding: 4px 20px; border-radius: 4px;
+  font-size: 16px; font-weight: 500; line-height: 2;
+  text-decoration: none; height: 36px;
+  border: 1px solid var(--hairline-strong);
+  font-family: var(--font-mono);
+}
+.btn-secondary:hover { border-color: var(--ink); }

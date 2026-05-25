@@ -31,6 +31,17 @@ access to all opencode features (models, providers, sessions, agents, etc.).`,
 	Version: version,
 }
 
+func init() {
+	versionCmd := &cobra.Command{
+		Use:   "version",
+		Short: "Print the version number of Kode",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Printf("kode %s (commit: %s, date: %s)\n", version, commit, date)
+		},
+	}
+	rootCmd.AddCommand(versionCmd)
+}
+
 func main() {
 	args := os.Args[1:]
 	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {

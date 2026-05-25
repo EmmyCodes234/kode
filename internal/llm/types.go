@@ -18,11 +18,13 @@ type ChatRequest struct {
 	Messages    []Message `json:"messages"`
 	Temperature float64   `json:"temperature,omitempty"`
 	MaxTokens   int       `json:"max_tokens,omitempty"`
+	Stream      bool      `json:"stream,omitempty"`
 }
 
 type ChatResponse struct {
 	Choices []Choice  `json:"choices"`
 	Error   *APIError `json:"error,omitempty"`
+	Usage   *Usage    `json:"usage,omitempty"`
 }
 
 type Choice struct {

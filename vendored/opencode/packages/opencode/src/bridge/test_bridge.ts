@@ -1,7 +1,7 @@
 import { spawn } from "child_process"
 import { resolve } from "path"
 
-const KODE_BIN = resolve("bin/kode.exe")
+const KODE_BIN = process.env.KODE_BIN ? resolve(process.env.KODE_BIN) : resolve("bin/kode.exe")
 const PROJECT_DIR = resolve(".")
 
 interface Verdict {

@@ -1,0 +1,9 @@
+.git
+node_modules
+vendored
+web
+bin
+*.exe
+.DS_Store
+.vscode
+.idea

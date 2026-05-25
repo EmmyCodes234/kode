@@ -215,15 +215,16 @@ export const ApplyPatchTool = Tool.define(
         },
       })
 
-      // Kode Gatekeeper: verify proposed Go file changes before writing to disk
-      const goFiles = fileChanges
-        .filter((c) => c.filePath.endsWith(".go") && c.type !== "delete")
+      // Kode Gatekeeper: verify proposed file changes before writing to disk
+      const CODE_EXTENSIONS = [".go", ".ts", ".tsx", ".js", ".jsx", ".py", ".rs", ".java", ".c", ".cpp", ".h", ".hpp"]
+      const verifyFiles = fileChanges
+        .filter((c) => CODE_EXTENSIONS.some((ext) => c.filePath.endsWith(ext)) && c.type !== "delete")
         .map((c) => ({ path: c.filePath, content: c.newContent }))
 
-      if (goFiles.length > 0) {
+      if (verifyFiles.length > 0) {
         const gatekeeper = new VerificationGatekeeper()
         const { approved, result } = yield* Effect.promise(() =>
-          gatekeeper.verifyWithEscalation(goFiles),
+          gatekeeper.verifyWithEscalation(verifyFiles),
         ).pipe(
           Effect.catchAll((error) =>
             Effect.succeed({

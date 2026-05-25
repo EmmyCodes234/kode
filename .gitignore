@@ -32,3 +32,6 @@ logs/
 tsconfig.tsbuildinfo
 kode.exe
 bin/
+
+# Local Netlify folder
+.netlify

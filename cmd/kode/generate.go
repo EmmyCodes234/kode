@@ -61,7 +61,7 @@ Use --apply to verify and apply hunks directly to disk.`,
 
 			client := llm.NewClient(cfg)
 
-			fmt.Fprintf(os.Stderr, "Sending to %s (%s)...\n", cfg.Model, cfg.Endpoint)
+			stepStart("Sending to %s (%s)...", cfg.Model, cfg.Endpoint)
 
 			content, err := client.Generate(context.Background(), llm.SystemPrompt, userPrompt)
 			if err != nil {
@@ -69,16 +69,17 @@ Use --apply to verify and apply hunks directly to disk.`,
 			}
 
 			elapsed := time.Since(start).Seconds()
-			fmt.Fprintf(os.Stderr, "LLM responded (%.1fs). Parsing...\n", elapsed)
+			stepOK("LLM responded (%.1fs)", elapsed)
 
 			parser := execution.NewHunkParser()
 			hunks, err := parser.ParseLLMResponse(content)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed to parse LLM response:\n  %v\n\nRaw response:\n%s\n", err, content)
+				stepFail("Parse failed: %v", err)
+				stepDetail("Raw response: %s", content)
 				return fmt.Errorf("parse error: %w", err)
 			}
 
-			fmt.Fprintf(os.Stderr, "Generated %d hunk(s).\n", len(hunks))
+			stepOK("Generated %d hunk(s)", len(hunks))
 
 			if projectDir == "" {
 				var err error
@@ -89,7 +90,14 @@ Use --apply to verify and apply hunks directly to disk.`,
 			}
 
 			if apply {
-				return applyHunks(projectDir, hunks, prompt)
+				repairFunc := func(ctx context.Context, prompt string, hunk execution.StructuredHunk) ([]execution.StructuredHunk, error) {
+					content, err := client.Generate(ctx, llm.SystemPrompt, prompt)
+					if err != nil {
+						return nil, err
+					}
+					return parser.ParseLLMResponse(content)
+				}
+				return applyHunks(projectDir, hunks, prompt, repairFunc)
 			}
 
 			enc := json.NewEncoder(os.Stdout)
@@ -108,7 +116,7 @@ Use --apply to verify and apply hunks directly to disk.`,
 	generateCmd.Flags().StringVar(&projectDir, "project-dir", "", "Project root directory (default: current working directory)")
 	rootCmd.AddCommand(generateCmd)
 
-	runCmd := &cobra.Command{
+		runCmd := &cobra.Command{
 		Use:   "run <prompt>",
 		Short: "Generate, verify, and apply patches in one step",
 		Long:  `Shortcut for: kode generate --apply <prompt>`,
@@ -137,7 +145,7 @@ Use --apply to verify and apply hunks directly to disk.`,
 			userPrompt := llm.BuildGeneratePrompt(prompt, contextStr)
 			client := llm.NewClient(cfg)
 
-			fmt.Fprintf(os.Stderr, "Sending to %s (%s)...\n", cfg.Model, cfg.Endpoint)
+			stepStart("Sending to %s (%s)...", cfg.Model, cfg.Endpoint)
 
 			content, err := client.Generate(context.Background(), llm.SystemPrompt, userPrompt)
 			if err != nil {
@@ -147,11 +155,12 @@ Use --apply to verify and apply hunks directly to disk.`,
 			parser := execution.NewHunkParser()
 			hunks, err := parser.ParseLLMResponse(content)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed to parse LLM response:\n  %v\n\nRaw response:\n%s\n", err, content)
+				stepFail("Parse failed: %v", err)
+				stepDetail("Raw response: %s", content)
 				return fmt.Errorf("parse error: %w", err)
 			}
 
-			fmt.Fprintf(os.Stderr, "Generated %d hunk(s). Applying...\n", len(hunks))
+			stepOK("Generated %d hunk(s). Applying...", len(hunks))
 
 			if projectDir == "" {
 				var err error
@@ -161,7 +170,14 @@ Use --apply to verify and apply hunks directly to disk.`,
 				}
 			}
 
-			return applyHunks(projectDir, hunks, prompt)
+			repairFunc := func(ctx context.Context, prompt string, hunk execution.StructuredHunk) ([]execution.StructuredHunk, error) {
+				content, err := client.Generate(ctx, llm.SystemPrompt, prompt)
+				if err != nil {
+					return nil, err
+				}
+				return parser.ParseLLMResponse(content)
+			}
+			return applyHunks(projectDir, hunks, prompt, repairFunc)
 		},
 	}
 
@@ -171,7 +187,7 @@ Use --apply to verify and apply hunks directly to disk.`,
 	rootCmd.AddCommand(runCmd)
 }
 
-func applyHunks(projectDir string, hunks []execution.StructuredHunk, taskID string) error {
+func applyHunks(projectDir string, hunks []execution.StructuredHunk, taskID string, repairFn execution.RepairFunc) error {
 	absDir, err := filepath.Abs(projectDir)
 	if err != nil {
 		return fmt.Errorf("invalid project directory: %w", err)
@@ -180,22 +196,24 @@ func applyHunks(projectDir string, hunks []execution.StructuredHunk, taskID stri
 	executor := execution.NewExecutor(absDir)
 	ctx := context.Background()
 
-	summary, err := executor.ExecuteTransaction(ctx, taskID, absDir, hunks, execution.ExecutionContext{})
+	summary, err := executor.ExecuteTransaction(ctx, taskID, absDir, hunks, execution.ExecutionContext{
+		RepairFunc: repairFn,
+	})
 	if err != nil {
 		return fmt.Errorf("execution failed: %w", err)
 	}
 
 	if summary.Status == execution.StatusPass {
-		fmt.Fprintf(os.Stderr, "All %d hunk(s) verified and applied in %d round(s).\n", len(summary.AppliedHunks), summary.RoundsUsed)
+		stepOK("All %d hunk(s) verified and applied in %d round(s)", len(summary.AppliedHunks), summary.RoundsUsed)
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
 		enc.Encode(summary)
 		return nil
 	}
 
-	fmt.Fprintf(os.Stderr, "%d hunk(s) succeeded, %d failed:\n", len(summary.AppliedHunks), len(summary.FailedHunks))
+	stepFail("%d hunk(s) succeeded, %d failed", len(summary.AppliedHunks), len(summary.FailedHunks))
 	for id, msg := range summary.FailedHunks {
-		fmt.Fprintf(os.Stderr, "  Hunk %s: %s\n", id, msg)
+		stepDetail("  Hunk %s: %s", id, msg)
 	}
 	return fmt.Errorf("verification failed after %d round(s)", summary.RoundsUsed)
 }

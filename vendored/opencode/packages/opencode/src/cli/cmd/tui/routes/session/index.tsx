@@ -86,6 +86,8 @@ import { getScrollAcceleration } from "../../util/scroll"
 import { collapseToolOutput } from "../../util/collapse-tool-output"
 import { TuiPluginRuntime } from "@/cli/cmd/tui/plugin/runtime"
 import { DialogRetryAction } from "../../component/dialog-retry-action"
+import { DialogTriforce } from "@tui/ui/dialog-triforce"
+import { setAskHandler } from "@/bridge/gatekeeper"
 import { SessionRetry } from "@/session/retry"
 import { getRevertDiffFiles } from "../../util/revert-diff"
 import { OPENCODE_BASE_MODE, useBindings, useCommandShortcut, useOpencodeKeymap } from "../../keymap"
@@ -311,6 +313,10 @@ export function Session() {
   }
   const keymap = useOpencodeKeymap()
   const dialog = useDialog()
+  setAskHandler(async (message: string, details: string) => {
+    const result = await DialogTriforce.show(dialog, message, "Verification blocked", details)
+    return result ?? "abort"
+  })
   const renderer = useRenderer()
 
   event.on("session.status", (evt) => {

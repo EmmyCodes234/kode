@@ -1,0 +1,7 @@
+{
+  "files": {
+    "testdata/broken.go": "package testdata\n\nfunc Hello() string {\n\treturn \"hello\n"
+  },
+  "block_architecture": false,
+  "architecture_rules": []
+}
