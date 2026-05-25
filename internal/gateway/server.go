@@ -145,6 +145,20 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Find model to check if Lite tier (needs protocol transform)
+	var model Model
+	for _, m := range s.catalog.Models {
+		if m.ID == req.Model {
+			model = m
+			break
+		}
+	}
+
+	if model.Tier == TierLite {
+		s.proxyToOpenModel(w, r, body, model)
+		return
+	}
+
 	if req.Stream {
 		s.proxyStream(w, r, upstreamURL, upstreamKey, body)
 	} else {
@@ -166,16 +180,14 @@ func (s *Server) resolveUpstream(modelID string) (string, string, error) {
 		return "", "", fmt.Errorf("unknown model: %s", modelID)
 	}
 
-	// Lite tier: route through OpenModel API with round-robin key pool
 	if model.Tier == TierLite {
 		key := s.litePool.Next()
 		if key == "" {
 			return "", "", fmt.Errorf("no Lite pool keys available")
 		}
-		return "https://api.openmodel.ai/v1/chat/completions", key, nil
+		return "https://api.openmodel.ai/v1/messages", key, nil
 	}
 
-	// Pro tier: direct upstream routing
 	switch model.Provider {
 	case "openai":
 		return "https://api.openai.com/v1/chat/completions", s.upstream.OpenAIKey, nil
