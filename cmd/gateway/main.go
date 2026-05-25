@@ -27,6 +27,7 @@ func main() {
 	addr := fmt.Sprintf(":%s", port)
 	log.Printf("Kode Gateway listening on %s", addr)
 	log.Printf("  Models: %d in catalog", len(gateway.DefaultCatalog.Models))
+	log.Printf("  Lite pool: %d keys (round-robin)", len(gateway.KeysFromEnv("KODE_LITE_KEYS")))
 	log.Printf("  Rate limit: 100 req/day per IP (Lite tier)")
 
 	if err := http.ListenAndServe(addr, srv); err != nil {

@@ -18,11 +18,12 @@ type UpstreamConfig struct {
 }
 
 type Server struct {
-	catalog    Catalog
-	keyStore   *APIKeyStore
-	upstream   UpstreamConfig
+	catalog     Catalog
+	keyStore    *APIKeyStore
+	upstream    UpstreamConfig
+	litePool    *KeyPool
 	rateLimiter *RateLimiter
-	mux        *http.ServeMux
+	mux         *http.ServeMux
 }
 
 func NewServer(catalog Catalog, upstream UpstreamConfig) *Server {
@@ -30,7 +31,8 @@ func NewServer(catalog Catalog, upstream UpstreamConfig) *Server {
 		catalog:      catalog,
 		keyStore:     NewAPIKeyStore(),
 		upstream:     upstream,
-		rateLimiter:  NewRateLimiter(100, 24*time.Hour), // 100 req/day for free tier
+		litePool:     NewKeyPool(KeysFromEnv("KODE_LITE_KEYS")),
+		rateLimiter:  NewRateLimiter(100, 24*time.Hour),
 		mux:          http.NewServeMux(),
 	}
 
@@ -164,18 +166,22 @@ func (s *Server) resolveUpstream(modelID string) (string, string, error) {
 		return "", "", fmt.Errorf("unknown model: %s", modelID)
 	}
 
+	// Lite tier: route through OpenModel API with round-robin key pool
+	if model.Tier == TierLite {
+		key := s.litePool.Next()
+		if key == "" {
+			return "", "", fmt.Errorf("no Lite pool keys available")
+		}
+		return "https://api.openmodel.com/v1/chat/completions", key, nil
+	}
+
+	// Pro tier: direct upstream routing
 	switch model.Provider {
 	case "openai":
 		return "https://api.openai.com/v1/chat/completions", s.upstream.OpenAIKey, nil
 	case "anthropic":
 		return "https://api.anthropic.com/v1/messages", s.upstream.AnthropicKey, nil
 	case "deepseek":
-		return "https://api.deepseek.com/v1/chat/completions", s.upstream.DeepSeekKey, nil
-	case "google":
-		return "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", s.upstream.GoogleKey, nil
-	case "nvidia":
-		return "https://integrate.api.nvidia.com/v1/chat/completions", s.upstream.DeepSeekKey, nil
-	case "meta", "alibaba", "zhipu", "moonshot":
 		return "https://api.deepseek.com/v1/chat/completions", s.upstream.DeepSeekKey, nil
 	default:
 		return "", "", fmt.Errorf("no upstream for provider: %s", model.Provider)
