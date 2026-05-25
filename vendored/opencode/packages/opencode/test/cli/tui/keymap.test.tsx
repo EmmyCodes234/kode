@@ -4,7 +4,7 @@ import { testRender, useRenderer } from "@opentui/solid"
 import { expect, test } from "bun:test"
 import { onCleanup } from "solid-js"
 import { createTuiResolvedConfig } from "../../fixture/tui-runtime"
-import { OpencodeKeymapProvider, registerOpencodeKeymap } from "@/cli/cmd/tui/keymap"
+import { KodeKeymapProvider, registerOpencodeKeymap } from "@/cli/cmd/tui/keymap"
 
 test("legacy page key aliases compile as page keys", async () => {
   const sequences: Record<string, string[][]> = {}
@@ -36,9 +36,9 @@ test("legacy page key aliases compile as page keys", async () => {
     })
 
     return (
-      <OpencodeKeymapProvider keymap={keymap}>
+      <KodeKeymapProvider keymap={keymap}>
         <box />
-      </OpencodeKeymapProvider>
+      </KodeKeymapProvider>
     )
   }
 

@@ -19,7 +19,7 @@ import {
   on,
 } from "solid-js"
 import { win32DisableProcessedInput, win32InstallCtrlCGuard } from "./win32"
-import { Flag } from "@opencode-ai/core/flag/flag"
+import { Flag } from "@kode/core/flag/flag"
 import semver from "semver"
 import { DialogProvider, useDialog } from "@tui/ui/dialog"
 import { DialogProvider as DialogProviderList } from "@tui/component/dialog-provider"
@@ -70,8 +70,8 @@ import { CommandPaletteDialog } from "./component/command-palette"
 import {
   COMMAND_PALETTE_COMMAND,
   OPENCODE_BASE_MODE,
-  OpencodeKeymapProvider,
-  registerOpencodeKeymap,
+  KodeKeymapProvider,
+  registerKodeKeymap,
   useBindings,
   useOpencodeKeymap,
 } from "./keymap"
@@ -195,7 +195,7 @@ export function tui(input: {
     const mode = (await renderer.waitForThemeMode(1000)) ?? "dark"
 
     const keymap = createDefaultOpenTuiKeymap(renderer)
-    const offKeymap = registerOpencodeKeymap(keymap, renderer, input.config)
+    const offKeymap = registerKodeKeymap(keymap, renderer, input.config)
 
     await render(() => {
       return (
@@ -204,7 +204,7 @@ export function tui(input: {
             <ErrorComponent error={error} reset={reset} onBeforeExit={onBeforeExit} onExit={onExit} mode={mode} />
           )}
         >
-          <OpencodeKeymapProvider keymap={keymap}>
+          <KodeKeymapProvider keymap={keymap}>
             <ArgsProvider {...input.args}>
               <ExitProvider onBeforeExit={onBeforeExit} onExit={onExit}>
                 <KVProvider>
@@ -257,7 +257,7 @@ export function tui(input: {
                 </KVProvider>
               </ExitProvider>
             </ArgsProvider>
-          </OpencodeKeymapProvider>
+          </KodeKeymapProvider>
         </ErrorBoundary>
       )
     }, renderer)
@@ -353,14 +353,14 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
     if (!terminalTitleEnabled() || Flag.OPENCODE_DISABLE_TERMINAL_TITLE) return
 
     if (route.data.type === "home") {
-      renderer.setTerminalTitle("OpenCode")
+      renderer.setTerminalTitle("kode")
       return
     }
 
     if (route.data.type === "session") {
       const session = sync.session.get(route.data.sessionID)
       if (!session || SessionApi.isDefaultTitle(session.title)) {
-        renderer.setTerminalTitle("OpenCode")
+        renderer.setTerminalTitle("kode")
         return
       }
 

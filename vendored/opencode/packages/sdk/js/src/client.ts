@@ -2,9 +2,9 @@ export * from "./gen/types.gen.js"
 
 import { createClient } from "./gen/client/client.gen.js"
 import { type Config } from "./gen/client/types.gen.js"
-import { OpencodeClient } from "./gen/sdk.gen.js"
+import { KodeClient } from "./gen/sdk.gen.js"
 import { wrapClientError } from "./error-interceptor.js"
-export { type Config as OpencodeClientConfig, OpencodeClient }
+export { type Config as KodeClientConfig, KodeClient }
 
 function pick(value: string | null, fallback?: string) {
   if (!value) return
@@ -30,9 +30,9 @@ function rewrite(request: Request, directory?: string) {
   return next
 }
 
-export const createKodeClient = createOpencodeClient
+export const createKodeClient = createKodeClient
 
-export function createOpencodeClient(config?: Config & { directory?: string }) {
+export function createKodeClient(config?: Config & { directory?: string }) {
   if (!config?.fetch) {
     const customFetch: any = (req: any) => {
       // @ts-ignore
@@ -55,5 +55,5 @@ export function createOpencodeClient(config?: Config & { directory?: string }) {
   const client = createClient(config)
   client.interceptors.request.use((request) => rewrite(request, config?.directory))
   client.interceptors.error.use(wrapClientError)
-  return new OpencodeClient({ client })
+  return new KodeClient({ client })
 }

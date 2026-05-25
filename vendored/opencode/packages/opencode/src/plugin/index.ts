@@ -14,7 +14,7 @@ import { CodexAuthPlugin } from "./codex"
 import { Session } from "@/session/session"
 import { NamedError } from "@kode/core/util/error"
 import { CopilotAuthPlugin } from "./github-copilot/copilot"
-// These were @opencode-ai/* packages that don't have @kode/* equivalents yet
+// These were @kode/* packages that don't have @kode/* equivalents yet
 // import { gitlabAuthPlugin as GitlabAuthPlugin } from "@kode/gitlab-auth"
 // import { PoeAuthPlugin } from "@kode/poe-auth"
 import { CloudflareAIGatewayAuthPlugin, CloudflareWorkersAuthPlugin } from "./cloudflare"

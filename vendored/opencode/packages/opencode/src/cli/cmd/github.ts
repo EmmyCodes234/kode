@@ -403,7 +403,7 @@ jobs:
           persist-credentials: false
 
       - name: Run kode
-        uses: anomalyco/kode/github@latest${envStr}
+        uses: EmmyCodes234/kode/github@latest${envStr}
         with:
           model: ${provider}/${model}`,
           )

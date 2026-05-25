@@ -2,8 +2,8 @@ import { Effect } from "effect"
 import { PluginV2 } from "../../plugin"
 import { ProviderV2 } from "../../provider"
 
-export const OpencodePlugin = PluginV2.define({
-  id: PluginV2.ID.make("opencode"),
+export const KodePlugin = PluginV2.define({
+  id: PluginV2.ID.make("kode"),
   effect: Effect.gen(function* () {
     let hasKey = false
     return {
@@ -11,7 +11,7 @@ export const OpencodePlugin = PluginV2.define({
         const item = evt.data.find((record) => record.provider.id === ProviderV2.ID.opencode)
         if (!item) return
         hasKey = Boolean(
-          process.env.OPENCODE_API_KEY ||
+          process.env.KODE_API_KEY ||
             item.provider.env.some((env) => process.env[env]) ||
             item.provider.options.aisdk.provider.apiKey ||
             (item.provider.enabled && item.provider.enabled.via === "account"),

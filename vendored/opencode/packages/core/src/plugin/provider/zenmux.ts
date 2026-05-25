@@ -12,7 +12,7 @@ export const ZenmuxPlugin = PluginV2.define({
           if (item.provider.endpoint.url !== "https://zenmux.ai/api/v1") continue
           evt.provider.update(item.provider.id, (provider) => {
             provider.options.headers["HTTP-Referer"] ??= "https://opencode.ai/"
-            provider.options.headers["X-Title"] ??= "opencode"
+            provider.options.headers["X-Title"] ??= "kode"
           })
         }
       }),

@@ -17,13 +17,13 @@ export const COMMAND_PALETTE_COMMAND = "command.palette.show"
 
 const OPENCODE_MODE_KEY = "opencode.mode"
 
-export const OpencodeKeymapProvider = KeymapProvider
+export const KodeKeymapProvider = KeymapProvider
 export const useOpencodeKeymap = useKeymap
 
 export { useBindings, useKeymapSelector }
 
 export type OpenTuiKeymap = ReturnType<typeof useKeymap>
-type OpencodeModeStack = ReturnType<typeof createOpencodeModeStack>
+type KodeModeStack = ReturnType<typeof createOpencodeModeStack>
 type CommandSlashEntry = {
   display: string
   description?: string
@@ -32,7 +32,7 @@ type CommandSlashEntry = {
 }
 type Command = ReturnType<OpenTuiKeymap["getCommands"]>[number]
 
-const modeStacks = new WeakMap<OpenTuiKeymap, OpencodeModeStack>()
+const modeStacks = new WeakMap<OpenTuiKeymap, KodeModeStack>()
 
 function isVisiblePaletteCommand(command: Command) {
   return command.hidden !== true && command.name !== COMMAND_PALETTE_COMMAND
@@ -193,7 +193,7 @@ export function formatKeyBindings(
   return formatCommandBindingsExtra(bindings, formatOptions(config))
 }
 
-export function registerOpencodeKeymap(
+export function registerKodeKeymap(
   keymap: OpenTuiKeymap,
   renderer: CliRenderer,
   config: Pick<TuiConfig.Resolved, "keybinds" | "leader_timeout">,

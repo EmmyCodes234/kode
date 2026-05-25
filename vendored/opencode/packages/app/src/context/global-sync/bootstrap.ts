@@ -1,6 +1,6 @@
 import type {
   Config,
-  OpencodeClient,
+  KodeClient,
   Path,
   PermissionRequest,
   Project,
@@ -83,13 +83,13 @@ function showErrors(input: {
   })
 }
 
-export const loadGlobalConfigQuery = (sdk: OpencodeClient) =>
+export const loadGlobalConfigQuery = (sdk: KodeClient) =>
   queryOptions({
     queryKey: ["config"],
     queryFn: () => retry(() => sdk.global.config.get().then((x) => x.data!)),
   })
 
-export const loadProjectsQuery = (sdk: OpencodeClient) =>
+export const loadProjectsQuery = (sdk: KodeClient) =>
   queryOptions({
     queryKey: ["project"],
     queryFn: () =>
@@ -105,7 +105,7 @@ export const loadProjectsQuery = (sdk: OpencodeClient) =>
   })
 
 export async function bootstrapGlobal(input: {
-  globalSDK: OpencodeClient
+  globalSDK: KodeClient
   requestFailedTitle: string
   translate: (key: string, vars?: Record<string, string | number>) => string
   formatMoreCount: (count: number) => string
@@ -162,7 +162,7 @@ function warmSessions(input: {
   ids: string[]
   store: Store<State>
   setStore: SetStoreFunction<State>
-  sdk: OpencodeClient
+  sdk: KodeClient
 }) {
   const known = new Set(input.store.session.map((item) => item.id))
   const ids = [...new Set(input.ids)].filter((id) => !!id && !known.has(id))
@@ -178,19 +178,19 @@ function warmSessions(input: {
   ).then(() => undefined)
 }
 
-export const loadProvidersQuery = (directory: string | null, sdk: OpencodeClient) =>
+export const loadProvidersQuery = (directory: string | null, sdk: KodeClient) =>
   queryOptions({
     queryKey: [directory, "providers"],
     queryFn: () => retry(() => sdk.provider.list().then((x) => normalizeProviderList(x.data!))),
   })
 
-export const loadAgentsQuery = (directory: string | null, sdk: OpencodeClient) =>
+export const loadAgentsQuery = (directory: string | null, sdk: KodeClient) =>
   queryOptions({
     queryKey: [directory, "agents"],
     queryFn: () => retry(() => sdk.app.agents().then((x) => normalizeAgentList(x.data))),
   })
 
-export const loadPathQuery = (directory: string | null, sdk: OpencodeClient) =>
+export const loadPathQuery = (directory: string | null, sdk: KodeClient) =>
   queryOptions<Path>({
     queryKey: [directory, "path"],
     queryFn: () => retry(() => sdk.path.get().then((x) => x.data!)),
@@ -198,7 +198,7 @@ export const loadPathQuery = (directory: string | null, sdk: OpencodeClient) =>
 
 export async function bootstrapDirectory(input: {
   directory: string
-  sdk: OpencodeClient
+  sdk: KodeClient
   store: Store<State>
   setStore: SetStoreFunction<State>
   vcsCache: VcsCache

@@ -1,8 +1,8 @@
-import { createOpencodeClient } from "@opencode-ai/sdk/v2"
-import type { GlobalEvent } from "@opencode-ai/sdk/v2"
+import { createKodeClient } from "@kode/sdk/v2"
+import type { GlobalEvent } from "@kode/sdk/v2"
 import { createSimpleContext } from "./helper"
 import { createGlobalEmitter } from "@solid-primitives/event-bus"
-import { Flag } from "@opencode-ai/core/flag/flag"
+import { Flag } from "@kode/core/flag/flag"
 import { batch, onCleanup, onMount } from "solid-js"
 
 export type EventSource = {
@@ -22,7 +22,7 @@ export const { use: useSDK, provider: SDKProvider } = createSimpleContext({
     let sse: AbortController | undefined
 
     function createSDK() {
-      return createOpencodeClient({
+      return createKodeClient({
         baseUrl: props.url,
         signal: abort.signal,
         directory: props.directory,

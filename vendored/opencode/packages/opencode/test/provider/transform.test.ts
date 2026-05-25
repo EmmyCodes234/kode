@@ -1959,7 +1959,7 @@ describe("ProviderTransform.message - strip openai metadata when store=false", (
             text: "Hello",
             providerOptions: {
               openai: { itemId: "msg_openai_part" },
-              opencode: { itemId: "msg_opencode_part" },
+              opencode: { itemId: "msg_KODE_part" },
               extra: { itemId: "msg_extra_part" },
             },
           },
@@ -1973,7 +1973,7 @@ describe("ProviderTransform.message - strip openai metadata when store=false", (
     expect(result[0].providerOptions?.opencode?.itemId).toBe("msg_opencode")
     expect(result[0].providerOptions?.extra?.itemId).toBe("msg_extra")
     expect(result[0].content[0].providerOptions?.openai?.itemId).toBe("msg_openai_part")
-    expect(result[0].content[0].providerOptions?.opencode?.itemId).toBe("msg_opencode_part")
+    expect(result[0].content[0].providerOptions?.opencode?.itemId).toBe("msg_KODE_part")
     expect(result[0].content[0].providerOptions?.extra?.itemId).toBe("msg_extra_part")
   })
 

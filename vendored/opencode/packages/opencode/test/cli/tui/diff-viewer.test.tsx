@@ -4,12 +4,12 @@ import path from "path"
 import { mkdir } from "fs/promises"
 import { createDefaultOpenTuiKeymap } from "@opentui/keymap/opentui"
 import { testRender, useRenderer } from "@opentui/solid"
-import { Global } from "@opencode-ai/core/global"
-import type { TuiPluginApi, TuiPluginMeta, TuiRouteCurrent, TuiRouteDefinition } from "@opencode-ai/plugin/tui"
+import { Global } from "@kode/core/global"
+import type { TuiPluginApi, TuiPluginMeta, TuiRouteCurrent, TuiRouteDefinition } from "@kode/plugin/tui"
 import { KVProvider } from "../../../src/cli/cmd/tui/context/kv"
 import { ThemeProvider } from "../../../src/cli/cmd/tui/context/theme"
 import { TuiConfigProvider } from "../../../src/cli/cmd/tui/context/tui-config"
-import { OpencodeKeymapProvider } from "../../../src/cli/cmd/tui/keymap"
+import { KodeKeymapProvider } from "../../../src/cli/cmd/tui/keymap"
 import diffViewerPlugin from "../../../src/cli/cmd/tui/feature-plugins/system/diff-viewer"
 import { createTuiPluginApi } from "../../fixture/tui-plugin"
 import { createTuiResolvedConfig } from "../../fixture/tui-runtime"
@@ -60,7 +60,7 @@ test("closing the diff viewer returns to the route it opened from", async () => 
     commands.get("diff.open")?.run?.({} as never)
 
     return (
-      <OpencodeKeymapProvider keymap={keymap}>
+      <KodeKeymapProvider keymap={keymap}>
         <TuiConfigProvider config={createTuiResolvedConfig()}>
           <KVProvider>
             <ThemeProvider mode="dark">
@@ -68,7 +68,7 @@ test("closing the diff viewer returns to the route it opened from", async () => 
             </ThemeProvider>
           </KVProvider>
         </TuiConfigProvider>
-      </OpencodeKeymapProvider>
+      </KodeKeymapProvider>
     )
   }
 

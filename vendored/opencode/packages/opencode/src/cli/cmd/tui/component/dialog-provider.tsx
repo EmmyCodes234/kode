@@ -8,7 +8,7 @@ import { DialogPrompt } from "../ui/dialog-prompt"
 import { Link } from "../ui/link"
 import { useTheme } from "../context/theme"
 import { TextAttributes } from "@opentui/core"
-import type { ProviderAuthAuthorization, ProviderAuthMethod } from "@opencode-ai/sdk/v2"
+import type { ProviderAuthAuthorization, ProviderAuthMethod } from "@kode/sdk/v2"
 import { DialogModel } from "./dialog-model"
 import * as Clipboard from "@tui/util/clipboard"
 import { useToast } from "../ui/toast"
@@ -18,7 +18,7 @@ import { useBindings } from "../keymap"
 
 const PROVIDER_PRIORITY: Record<string, number> = {
   opencode: 0,
-  "opencode-go": 1,
+  "kode-go": 1,
   openai: 2,
   "github-copilot": 3,
   anthropic: 4,
@@ -58,7 +58,7 @@ export function providerOptions(list: { id: string; name: string }[]): ProviderO
           opencode: "(Recommended)",
           anthropic: "(API key)",
           openai: "(ChatGPT Plus/Pro or API key)",
-          "opencode-go": "Low cost subscription for everyone",
+          "kode-go": "Low cost subscription for everyone",
         }[provider.id],
         category: provider.id in PROVIDER_PRIORITY ? "Popular" : "Providers",
       })),
@@ -366,7 +366,7 @@ function ApiMethod(props: ApiMethodProps) {
               </text>
             </box>
           ),
-          "opencode-go": (
+          "kode-go": (
             <box gap={1}>
               <text fg={theme.textMuted}>
                 OpenCode Go is a $10 per month subscription that provides reliable access to popular open coding models

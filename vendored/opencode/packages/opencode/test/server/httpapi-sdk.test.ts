@@ -6,7 +6,7 @@ import { ChildProcessSpawner } from "effect/unstable/process"
 import { AppFileSystem } from "@kode/core/filesystem"
 import { CrossSpawnSpawner } from "@kode/core/cross-spawn-spawner"
 import { Flag } from "@kode/core/flag/flag"
-import { createOpencodeClient } from "@kode/sdk/v2"
+import { createKodeClient } from "@kode/sdk/v2"
 import { validateSession } from "../../src/cli/cmd/tui/validate-session"
 import { InstanceBootstrap } from "../../src/project/bootstrap-service"
 import { InstanceStore } from "../../src/project/instance-store"
@@ -35,12 +35,12 @@ const it = testEffect(
 )
 
 const original = {
-  OPENCODE_SERVER_PASSWORD: Flag.OPENCODE_SERVER_PASSWORD,
-  OPENCODE_SERVER_USERNAME: Flag.OPENCODE_SERVER_USERNAME,
+  KODE_SERVER_PASSWORD: Flag.KODE_SERVER_PASSWORD,
+  KODE_SERVER_USERNAME: Flag.KODE_SERVER_USERNAME,
 }
 
 type ServerPath = "default" | "raw"
-type Sdk = ReturnType<typeof createOpencodeClient>
+type Sdk = ReturnType<typeof createKodeClient>
 type SdkResult = { response: Response; data?: unknown; error?: unknown }
 type Captured = { status: number; data?: unknown; error?: unknown }
 type ProjectFixture = { sdk: Sdk; directory: string }
@@ -49,8 +49,8 @@ type TestServices = AppFileSystem.Service | ChildProcessSpawner.ChildProcessSpaw
 type TestScope = Scope.Scope | TestServices
 
 function app(serverPath: ServerPath, input?: { password?: string; username?: string }) {
-  Flag.OPENCODE_SERVER_PASSWORD = input?.password
-  Flag.OPENCODE_SERVER_USERNAME = input?.username
+  Flag.KODE_SERVER_PASSWORD = input?.password
+  Flag.KODE_SERVER_USERNAME = input?.username
   if (serverPath === "default") return Server.Default().app
 
   const handler = HttpRouter.toWebHandler(
@@ -58,8 +58,8 @@ function app(serverPath: ServerPath, input?: { password?: string; username?: str
       Layer.provide(
         ConfigProvider.layer(
           ConfigProvider.fromUnknown({
-            OPENCODE_SERVER_PASSWORD: input?.password,
-            OPENCODE_SERVER_USERNAME: input?.username,
+            KODE_SERVER_PASSWORD: input?.password,
+            KODE_SERVER_USERNAME: input?.username,
           }),
         ),
       ),
@@ -79,7 +79,7 @@ function client(
   directory?: string,
   input?: { password?: string; username?: string; headers?: Record<string, string> },
 ) {
-  return createOpencodeClient({
+  return createKodeClient({
     baseUrl: "http://localhost",
     directory,
     headers: input?.headers,
@@ -328,8 +328,8 @@ function seedMessage(directory: string, sessionID: string) {
 }
 
 afterEach(async () => {
-  Flag.OPENCODE_SERVER_PASSWORD = original.OPENCODE_SERVER_PASSWORD
-  Flag.OPENCODE_SERVER_USERNAME = original.OPENCODE_SERVER_USERNAME
+  Flag.KODE_SERVER_PASSWORD = original.KODE_SERVER_PASSWORD
+  Flag.KODE_SERVER_USERNAME = original.KODE_SERVER_USERNAME
   await disposeAllInstances()
   await resetDatabase()
 })

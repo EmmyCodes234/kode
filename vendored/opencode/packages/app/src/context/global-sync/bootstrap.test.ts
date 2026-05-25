@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import { createStore } from "solid-js/store"
 import { QueryClient } from "@tanstack/solid-query"
-import type { Config, OpencodeClient, Project } from "@kode/sdk/v2/client"
+import type { Config, KodeClient, Project } from "@kode/sdk/v2/client"
 import type { NormalizedProviderListResponse } from "@kode/ui/context"
 import { bootstrapDirectory } from "./bootstrap"
 import type { State, VcsCache } from "./types"
@@ -60,7 +60,7 @@ describe("bootstrapDirectory", () => {
         question: { list: async () => ({ data: [] }) },
         mcp: { status: async () => ({ data: {} }) },
         provider: { list: async () => ({ data: { all: [], connected: [], default: {} } }) },
-      } as unknown as OpencodeClient,
+      } as unknown as KodeClient,
       store,
       setStore,
       vcsCache: { setStore() {} } as unknown as VcsCache,

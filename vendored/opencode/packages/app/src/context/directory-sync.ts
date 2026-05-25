@@ -9,7 +9,7 @@ import {
   setSessionPrefetch,
 } from "./global-sync/session-prefetch"
 import { useGlobalSync } from "./global-sync"
-import type { Message, OpencodeClient, Part } from "@kode/sdk/v2/client"
+import type { Message, KodeClient, Part } from "@kode/sdk/v2/client"
 import { SESSION_CACHE_LIMIT, dropSessionCaches, pickSessionCacheEvictions } from "./global-sync/session-cache"
 import { diffs as list, message as clean } from "@/utils/diffs"
 
@@ -164,7 +164,7 @@ function setOptimisticRemove(setStore: (...args: unknown[]) => void, input: Opti
   })
 }
 
-export const createDirSyncContext = (client: OpencodeClient, directory: string) => {
+export const createDirSyncContext = (client: KodeClient, directory: string) => {
   const globalSync = useGlobalSync()
 
   type Child = ReturnType<(typeof globalSync)["child"]>
