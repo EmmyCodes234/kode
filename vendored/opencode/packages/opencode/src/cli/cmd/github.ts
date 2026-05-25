@@ -138,7 +138,7 @@ type IssueQueryResponse = {
   }
 }
 
-const AGENT_USERNAME = "Kode"-agent[bot]"
+const AGENT_USERNAME = "Kode-agent[bot]"
 const AGENT_REACTION = "eyes"
 const WORKFLOW_FILE = ".github/workflows/kode.yml"
 
@@ -569,7 +569,7 @@ export const GithubRunCommand = effectCmd({
           await runLocalEffect(sessionShare.share(session.id))
           return session.id.slice(-8)
         })()
-        console.log("Kode" session", session.id)
+        console.log("Kode session", session.id)
 
         // Handle event types:
         // REPO_EVENTS (schedule, workflow_dispatch): no issue/PR context, output to logs/PR only
@@ -1027,7 +1027,7 @@ export const GithubRunCommand = effectCmd({
 
       async function getOidcToken() {
         try {
-          return await core.getIDToken("Kode"-github-action")
+          return await core.getIDToken("Kode-github-action")
         } catch (error) {
           console.error("Failed to get OIDC token:", error instanceof Error ? error.message : error)
           throw new Error(

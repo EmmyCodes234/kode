@@ -27,13 +27,13 @@ import { SchemaErrorMiddleware } from "./middleware/schema-error"
 const EventSchema = Schema.Union(BusEvent.effectPayloads()).annotate({ identifier: "Event" })
 const SyncEventSchemas = SyncEvent.effectPayloads()
 
-export const RootHttpApi = HttpApi.make("Kode"-root")
+export const RootHttpApi = HttpApi.make("Kode-root")
   .addHttpApi(ControlApi)
   .addHttpApi(GlobalApi)
   .middleware(SchemaErrorMiddleware)
   .middleware(Authorization)
 
-export const InstanceHttpApi = HttpApi.make("Kode"-instance")
+export const InstanceHttpApi = HttpApi.make("Kode-instance")
   .addHttpApi(ConfigApi)
   .addHttpApi(ExperimentalApi)
   .addHttpApi(FileApi)

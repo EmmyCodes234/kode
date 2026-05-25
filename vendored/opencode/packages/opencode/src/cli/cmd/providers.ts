@@ -301,7 +301,7 @@ export const ProvidersLoginCommand = effectCmd({
   builder: (yargs) =>
     yargs
       .positional("url", {
-        describe: "Kode" auth provider",
+        describe: "Kode auth provider",
         type: "string",
       })
       .option("provider", {
@@ -460,7 +460,7 @@ export const ProvidersLoginCommand = effectCmd({
       )
     }
 
-    if (provider === "Kode"") {
+    if (provider === "Kode") {
       yield* Prompt.log.info("Create an api key at https://kode.ai/auth")
     }
 

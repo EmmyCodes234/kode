@@ -174,7 +174,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
       const ok =
         hasKey ||
         Boolean(yield* dep.auth(input.id)) ||
-        Boolean((yield* dep.config()).provider?.["Kode""]?.options?.apiKey)
+        Boolean((yield* dep.config()).provider?.["Kode"]?.options?.apiKey)
 
       if (!ok) {
         for (const [key, value] of Object.entries(input.models)) {
@@ -834,7 +834,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
         autoload: false,
         options: {
           headers: {
-            "X-Cerebras-3rd-Party-Integration": "Kode"",
+            "X-Cerebras-3rd-Party-Integration": "Kode",
           },
         },
       }),
@@ -1776,7 +1776,7 @@ export const layer = Layer.effect(
         "gemini-2.5-flash",
         "gpt-5-nano",
       ]
-      if (providerID.startsWith("Kode"")) {
+      if (providerID.startsWith("Kode")) {
         priority = ["gpt-5-nano"]
       }
       if (providerID.startsWith("github-copilot")) {

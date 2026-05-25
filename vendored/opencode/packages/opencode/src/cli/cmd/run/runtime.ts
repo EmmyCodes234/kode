@@ -166,9 +166,9 @@ async function runInteractiveRuntime(input: RunRuntimeInput): Promise<void> {
   return withRunSpan(
     "RunInteractive.session",
     {
-      "Kode".mode": input.resolveSession ? "local" : "attach",
-      "Kode".initial_input": !!input.initialInput,
-      "Kode".demo": input.demo,
+      "Kode.mode": input.resolveSession ? "local" : "attach",
+      "Kode.initial_input": !!input.initialInput,
+      "Kode.demo": input.demo,
     },
     async (span) => {
       const start = performance.now()
@@ -206,12 +206,12 @@ async function runInteractiveRuntime(input: RunRuntimeInput): Promise<void> {
         agent: ctx.agent,
       }
       setRunSpanAttributes(span, {
-        "Kode".directory": ctx.directory,
-        "Kode".resume": ctx.resume === true,
-        "Kode".agent.name": state.agent,
-        "Kode".model.provider": state.model?.providerID,
-        "Kode".model.id": state.model?.modelID,
-        "Kode".model.variant": state.activeVariant,
+        "Kode.directory": ctx.directory,
+        "Kode.resume": ctx.resume === true,
+        "Kode.agent.name": state.agent,
+        "Kode.model.provider": state.model?.providerID,
+        "Kode.model.id": state.model?.modelID,
+        "Kode.model.variant": state.activeVariant,
         "session.id": state.sessionID || undefined,
       })
       const ensureSession = () => {
@@ -228,7 +228,7 @@ async function runInteractiveRuntime(input: RunRuntimeInput): Promise<void> {
           state.sessionTitle = next.sessionTitle ?? state.sessionTitle
           state.agent = next.agent
           setRunSpanAttributes(span, {
-            "Kode".agent.name": state.agent,
+            "Kode.agent.name": state.agent,
             "session.id": state.sessionID,
           })
         })
@@ -286,7 +286,7 @@ async function runInteractiveRuntime(input: RunRuntimeInput): Promise<void> {
           state.activeVariant = cycleVariant(state.activeVariant, state.variants)
           saveVariant(state.model, state.activeVariant)
           setRunSpanAttributes(span, {
-            "Kode".model.variant": state.activeVariant,
+            "Kode.model.variant": state.activeVariant,
           })
           return {
             status: state.activeVariant ? `variant ${state.activeVariant}` : "variant default",
@@ -322,9 +322,9 @@ async function runInteractiveRuntime(input: RunRuntimeInput): Promise<void> {
           }
 
           setRunSpanAttributes(span, {
-            "Kode".model.provider": model.providerID,
-            "Kode".model.id": model.modelID,
-            "Kode".model.variant": state.activeVariant,
+            "Kode.model.provider": model.providerID,
+            "Kode.model.id": model.modelID,
+            "Kode.model.variant": state.activeVariant,
           })
           return {
             modelLabel: formatModelLabel(model, state.activeVariant, state.providers),
@@ -349,7 +349,7 @@ async function runInteractiveRuntime(input: RunRuntimeInput): Promise<void> {
           state.activeVariant = variant
           saveVariant(state.model, state.activeVariant)
           setRunSpanAttributes(span, {
-            "Kode".model.variant": state.activeVariant,
+            "Kode.model.variant": state.activeVariant,
           })
           return {
             status: state.activeVariant ? `variant ${state.activeVariant}` : "variant default",
@@ -450,7 +450,7 @@ async function runInteractiveRuntime(input: RunRuntimeInput): Promise<void> {
         if (next !== state.activeVariant) {
           state.activeVariant = next
           setRunSpanAttributes(span, {
-            "Kode".model.variant": state.activeVariant,
+            "Kode.model.variant": state.activeVariant,
           })
         }
 
@@ -562,10 +562,10 @@ async function runInteractiveRuntime(input: RunRuntimeInput): Promise<void> {
                       })
                     : undefined
                   setRunSpanAttributes(span, {
-                    "Kode".agent.name": state.agent,
-                    "Kode".model.provider": state.model?.providerID,
-                    "Kode".model.id": state.model?.modelID,
-                    "Kode".model.variant": state.activeVariant,
+                    "Kode.agent.name": state.agent,
+                    "Kode.model.provider": state.model?.providerID,
+                    "Kode.model.id": state.model?.modelID,
+                    "Kode.model.variant": state.activeVariant,
                     "session.id": state.sessionID,
                   })
                   log?.write("session.new", {
@@ -624,24 +624,24 @@ async function runInteractiveRuntime(input: RunRuntimeInput): Promise<void> {
             return withRunSpan(
               "RunInteractive.turn",
               {
-                "Kode".agent.name": state.agent,
-                "Kode".model.provider": state.model?.providerID,
-                "Kode".model.id": state.model?.modelID,
-                "Kode".model.variant": state.activeVariant,
-                "Kode".prompt.chars": prompt.text.length,
-                "Kode".prompt.parts": prompt.parts.length,
-                "Kode".prompt.include_files": includeFiles,
-                "Kode".prompt.file_parts": includeFiles ? input.files.length : 0,
+                "Kode.agent.name": state.agent,
+                "Kode.model.provider": state.model?.providerID,
+                "Kode.model.id": state.model?.modelID,
+                "Kode.model.variant": state.activeVariant,
+                "Kode.prompt.chars": prompt.text.length,
+                "Kode.prompt.parts": prompt.parts.length,
+                "Kode.prompt.include_files": includeFiles,
+                "Kode.prompt.file_parts": includeFiles ? input.files.length : 0,
                 "session.id": state.sessionID || undefined,
               },
               async (span) => {
                 try {
                   const next = await ensureStream()
                   setRunSpanAttributes(span, {
-                    "Kode".agent.name": state.agent,
-                    "Kode".model.provider": state.model?.providerID,
-                    "Kode".model.id": state.model?.modelID,
-                    "Kode".model.variant": state.activeVariant,
+                    "Kode.agent.name": state.agent,
+                    "Kode.model.provider": state.model?.providerID,
+                    "Kode.model.id": state.model?.modelID,
+                    "Kode.model.variant": state.activeVariant,
                     "session.id": state.sessionID || undefined,
                   })
                   await next.handle.runPromptTurn({
@@ -712,9 +712,9 @@ export async function runInteractiveLocalMode(input: RunLocalInput): Promise<voi
   return withRunSpan(
     "RunInteractive.localMode",
     {
-      "Kode".directory": input.directory,
-      "Kode".initial_input": !!input.initialInput,
-      "Kode".demo": input.demo,
+      "Kode.directory": input.directory,
+      "Kode.initial_input": !!input.initialInput,
+      "Kode.demo": input.demo,
     },
     async () => {
       const sdk = createKodeClient({
@@ -773,8 +773,8 @@ export async function runInteractiveMode(input: RunInput & { createSession?: Cre
   return withRunSpan(
     "RunInteractive.attachMode",
     {
-      "Kode".directory": input.directory,
-      "Kode".initial_input": !!input.initialInput,
+      "Kode.directory": input.directory,
+      "Kode.initial_input": !!input.initialInput,
       "session.id": input.sessionID,
     },
     async () =>

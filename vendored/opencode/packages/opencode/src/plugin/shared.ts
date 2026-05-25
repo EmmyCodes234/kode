@@ -7,7 +7,7 @@ import { isRecord } from "@/util/record"
 import { Npm } from "@kode/core/npm"
 
 // Old npm package names for plugins that are now built-in
-export const DEPRECATED_PLUGIN_PACKAGES = ["Kode"-openai-codex-auth", "Kode"-copilot-auth"]
+export const DEPRECATED_PLUGIN_PACKAGES = ["Kode-openai-codex-auth", "Kode-copilot-auth"]
 
 export function isDeprecatedPlugin(spec: string) {
   return DEPRECATED_PLUGIN_PACKAGES.some((pkg) => spec.includes(pkg))

@@ -80,7 +80,7 @@ export const PrCommand = effectCmd({
           UI.println(`Importing session...`)
 
           const importResult = yield* Effect.promise(() =>
-            Process.text(["Kode"", "import", sessionUrl], { nothrow: true }),
+            Process.text(["Kode", "import", sessionUrl], { nothrow: true }),
           )
           if (importResult.code === 0) {
             const sessionIdMatch = importResult.text.trim().match(/Imported session: ([a-zA-Z0-9_-]+)/)

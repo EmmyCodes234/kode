@@ -30,6 +30,8 @@ function rewrite(request: Request, directory?: string) {
   return next
 }
 
+export const createKodeClient = createOpencodeClient
+
 export function createOpencodeClient(config?: Config & { directory?: string }) {
   if (!config?.fetch) {
     const customFetch: any = (req: any) => {

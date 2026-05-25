@@ -75,7 +75,7 @@ export const ProjectApi = HttpApi.make("project")
   )
   .annotateMerge(
     OpenApi.annotations({
-      title: "Kode" experimental HttpApi",
+      title: "Kode experimental HttpApi",
       version: "0.0.1",
       description: "Experimental HttpApi surface for selected instance routes.",
     }),

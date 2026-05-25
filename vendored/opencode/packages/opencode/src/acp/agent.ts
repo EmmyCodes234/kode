@@ -508,7 +508,7 @@ export class Agent implements ACPAgent {
     const authMethod: AuthMethod = {
       description: "Run `kode auth login` in the terminal",
       name: "Login with kode",
-      id: "Kode"-login",
+      id: "Kode-login",
     }
 
     // If client supports terminal-auth capability, use that instead.

@@ -14,7 +14,7 @@ const OAUTH_PORT = 1456
 const OAUTH_REDIRECT_PATH = "/auth/callback"
 const OAUTH_TOKEN_PATH = "/auth/token"
 const ROUTER_REFRESH_INTERVAL_MS = 5 * 60 * 1000
-const MAK_NAME_PREFIX = "Kode"-oauth"
+const MAK_NAME_PREFIX = "Kode-oauth"
 
 interface ImplicitTokenPayload {
   access_token: string

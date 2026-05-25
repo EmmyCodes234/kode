@@ -14,8 +14,9 @@ import { CodexAuthPlugin } from "./codex"
 import { Session } from "@/session/session"
 import { NamedError } from "@kode/core/util/error"
 import { CopilotAuthPlugin } from "./github-copilot/copilot"
-import { gitlabAuthPlugin as GitlabAuthPlugin } from "Kode"-gitlab-auth"
-import { PoeAuthPlugin } from "Kode"-poe-auth"
+// These were @opencode-ai/* packages that don't have @kode/* equivalents yet
+// import { gitlabAuthPlugin as GitlabAuthPlugin } from "@kode/gitlab-auth"
+// import { PoeAuthPlugin } from "@kode/poe-auth"
 import { CloudflareAIGatewayAuthPlugin, CloudflareWorkersAuthPlugin } from "./cloudflare"
 import { AzureAuthPlugin } from "./azure"
 import { DigitalOceanAuthPlugin } from "./digitalocean"
@@ -61,8 +62,8 @@ export class Service extends Context.Service<Service, Interface>()("@kode/Plugin
 const INTERNAL_PLUGINS: PluginInstance[] = [
   CodexAuthPlugin,
   CopilotAuthPlugin,
-  GitlabAuthPlugin,
-  PoeAuthPlugin,
+  // GitlabAuthPlugin,
+  // PoeAuthPlugin,
   CloudflareWorkersAuthPlugin,
   CloudflareAIGatewayAuthPlugin,
   AzureAuthPlugin,

@@ -337,8 +337,8 @@ function patchDir(input: PatchInput) {
   return path.join(root, ".kode")
 }
 
-function patchName(kind: Kind): "Kode"" | "tui" {
-  if (kind === "server") return "Kode""
+function patchName(kind: Kind): "Kode" | "tui" {
+  if (kind === "server") return "Kode"
   return "tui"
 }
 

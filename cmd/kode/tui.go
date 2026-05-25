@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	"github.com/spf13/cobra"
@@ -18,54 +17,10 @@ func init() {
 This runs the TypeScript TUI from the vendored monorepo.
 Additional arguments after -- are passed through to the TUI.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return launchTUI(args)
+			return proxyTUI(args)
 		},
 	}
 	rootCmd.AddCommand(tuiCmd)
-}
-
-func launchTUI(passthroughArgs []string) error {
-	selfPath, err := os.Executable()
-	if err != nil {
-		return fmt.Errorf("cannot determine binary path: %w", err)
-	}
-
-	tuiDir, err := findTUIDir()
-	if err != nil {
-		return err
-	}
-
-	bunPath, err := exec.LookPath("bun")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "TUI requires bun and node_modules. Setup:\n")
-		fmt.Fprintf(os.Stderr, "  1. npm install -g bun\n")
-		fmt.Fprintf(os.Stderr, "  2. cd vendored/opencode && bun install\n")
-		fmt.Fprintf(os.Stderr, "  3. kode tui\n")
-		return fmt.Errorf("bun not found in PATH")
-	}
-
-	// Check node_modules exist
-	if _, err := os.Stat(filepath.Join(tuiDir, "node_modules")); os.IsNotExist(err) {
-		fmt.Fprintf(os.Stderr, "node_modules not found. Run: cd vendored/opencode && bun install\n")
-		return fmt.Errorf("node_modules not installed")
-	}
-
-	bunArgs := append([]string{"run", "--conditions=browser", "./src/index.ts"}, passthroughArgs...)
-
-	tuiCmd := exec.Command(bunPath, bunArgs...)
-	tuiCmd.Dir = tuiDir
-	tuiCmd.Stdin = os.Stdin
-	tuiCmd.Stdout = os.Stdout
-	tuiCmd.Stderr = os.Stderr
-	tuiCmd.Env = append(os.Environ(), fmt.Sprintf("KODE_BIN=%s", selfPath))
-
-	if err := tuiCmd.Run(); err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			os.Exit(exitErr.ExitCode())
-		}
-		return fmt.Errorf("TUI exited: %w", err)
-	}
-	return nil
 }
 
 func findTUIDir() (string, error) {

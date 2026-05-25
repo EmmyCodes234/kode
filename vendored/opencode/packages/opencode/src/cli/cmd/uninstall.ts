@@ -180,10 +180,10 @@ async function executeUninstall(method: Installation.Method, targets: RemovalTar
 
   if (method !== "curl" && method !== "unknown") {
     const cmds: Record<string, string[]> = {
-      npm: ["npm", "uninstall", "-g", "Kode"-ai"],
-      pnpm: ["pnpm", "uninstall", "-g", "Kode"-ai"],
-      bun: ["bun", "remove", "-g", "Kode"-ai"],
-      yarn: ["yarn", "global", "remove", "Kode"-ai"],
+      npm: ["npm", "uninstall", "-g", "Kode-ai"],
+      pnpm: ["pnpm", "uninstall", "-g", "Kode-ai"],
+      bun: ["bun", "remove", "-g", "Kode-ai"],
+      yarn: ["yarn", "global", "remove", "Kode-ai"],
       brew: ["brew", "uninstall", "kode"],
       choco: ["choco", "uninstall", "kode"],
       scoop: ["scoop", "uninstall", "kode"],

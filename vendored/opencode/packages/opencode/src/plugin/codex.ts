@@ -636,7 +636,7 @@ export async function CodexAuthPlugin(input: PluginInput, options: CodexAuthPlug
     },
     "chat.headers": async (input, output) => {
       if (input.model.providerID !== "openai") return
-      output.headers.originator = "Kode""
+      output.headers.originator = "Kode"
       output.headers["User-Agent"] = `Kode/${InstallationVersion} (${os.platform()} ${os.release()}; ${os.arch()})`
       output.headers.session_id = input.sessionID
     },
