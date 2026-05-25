@@ -50,7 +50,7 @@ export default function Nav() {
           <li><Link to="/pricing" style={{ textDecoration: 'none', color: 'var(--body)', fontSize: 15, fontWeight: 500 }} onMouseEnter={e => e.target.style.color = 'var(--ink)'} onMouseLeave={e => e.target.style.color = 'var(--body)'}>Plans</Link></li>
           <li><a href="#faq" onClick={(e) => handleHashClick(e, '#faq')} style={{ textDecoration: 'none', color: 'var(--body)', fontSize: 15, fontWeight: 500 }} onMouseEnter={e => e.target.style.color = 'var(--ink)'} onMouseLeave={e => e.target.style.color = 'var(--body)'}>[x] FAQ</a></li>
           <li><Link to="/docs" style={{ textDecoration: 'none', color: 'var(--body)', fontSize: 15, fontWeight: 500 }} onMouseEnter={e => e.target.style.color = 'var(--ink)'} onMouseLeave={e => e.target.style.color = 'var(--body)'}>Docs</Link></li>
-          <li><a href="https://github.com/EmmyCodes234/kode" target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: 'var(--body)', fontSize: 15, fontWeight: 500 }} onMouseEnter={e => e.target.style.color = 'var(--ink)'} onMouseLeave={e => e.target.style.color = 'var(--body)'}>GitHub</a></li>
+          <li><a href="https://github.com/sicario-labs/kode" target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: 'var(--body)', fontSize: 15, fontWeight: 500 }} onMouseEnter={e => e.target.style.color = 'var(--ink)'} onMouseLeave={e => e.target.style.color = 'var(--body)'}>GitHub</a></li>
         </ul>
         <a href="#install" className="btn-primary" style={{ height: 32, fontSize: 15, padding: '4px 20px', lineHeight: 2, textDecoration: 'none', fontFamily: 'var(--font-mono)' }}>Download</a>
       </div>

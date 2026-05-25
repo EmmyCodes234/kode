@@ -8,7 +8,7 @@ const faqs = [
   { q: 'Can I only use Kode in the terminal?', a: 'Kode works in your terminal, IDE, or as a desktop app. kode tui launches the full interactive TUI. IDE extensions are in development.' },
   { q: 'How much does Kode cost?', a: 'Kode itself is free and open source. You pay only for the LLM tokens you use. With Context Budgeting, you set hard cost caps per cycle — no surprise bills.' },
   { q: 'What about data and privacy?', a: 'Kode does not store your code or context. Blindfold Mode ensures identifiers are obfuscated before reaching any LLM provider. Everything runs locally on your machine.' },
-  { q: 'Is Kode open source?', a: 'Yes. The full source is at github.com/EmmyCodes234/kode. Go engine, TypeScript TUI, CI/CD — everything is open.' },
+  { q: 'Is Kode open source?', a: 'Yes. The full source is at github.com/sicario-labs/kode. Go engine, TypeScript TUI, CI/CD — everything is open.' },
 ]
 
 export default function FAQ() {

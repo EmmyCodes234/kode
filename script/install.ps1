@@ -2,7 +2,7 @@ param(
   [string]$Version = "latest"
 )
 
-$repo = "EmmyCodes234/kode"
+$repo = "sicario-labs/kode"
 $releases = "https://api.github.com/repos/$repo/releases"
 
 if ($Version -eq "latest") {

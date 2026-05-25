@@ -8,7 +8,7 @@ export default function Footer() {
           paddingBottom: 24, marginBottom: 16,
         }}>
           {[
-            { label: 'GitHub', href: 'https://github.com/EmmyCodes234/kode' },
+            { label: 'GitHub', href: 'https://github.com/sicario-labs/kode' },
             { label: 'Docs', href: '/docs' },
             { label: 'Changelog', href: '/changelog' },
             { label: 'Pricing', href: '/pricing' },

@@ -259,7 +259,7 @@
       <li><a href="#features">[+] Features</a></li>
       <li><a href="#plans">Plans</a></li>
       <li><a href="#faq">[x] FAQ</a></li>
-      <li><a href="https://github.com/EmmyCodes234/kode" target="_blank">GitHub</a></li>
+      <li><a href="https://github.com/sicario-labs/kode" target="_blank">GitHub</a></li>
     </ul>
     <a href="#install" class="nav-cta">Download</a>
   </div>
@@ -563,7 +563,7 @@
       </div>
       <div class="faq-item">
         <button class="faq-question" onclick="toggleFaq(this)">Is Kode open source?<span>+</span></button>
-        <div class="faq-answer"><p>Yes. The full source is at <a href="https://github.com/EmmyCodes234/kode" class="link-md">github.com/EmmyCodes234/kode</a>. Go engine, TypeScript TUI, CI/CD — everything is open.</p></div>
+        <div class="faq-answer"><p>Yes. The full source is at <a href="https://github.com/sicario-labs/kode" class="link-md">github.com/sicario-labs/kode</a>. Go engine, TypeScript TUI, CI/CD — everything is open.</p></div>
       </div>
     </div>
   </div>
@@ -587,7 +587,7 @@
 <footer>
   <div class="wrapper">
     <div class="footer-links">
-      <a href="https://github.com/EmmyCodes234/kode" target="_blank">GitHub</a>
+      <a href="https://github.com/sicario-labs/kode" target="_blank">GitHub</a>
       <a href="/docs">Docs</a>
       <a href="/changelog">Changelog</a>
       <a href="/discord">Discord</a>

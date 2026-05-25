@@ -2,7 +2,7 @@
 set -euo pipefail
 
 VERSION="${1:-latest}"
-REPO="EmmyCodes234/kode"
+REPO="sicario-labs/kode"
 
 if [ "$VERSION" = "latest" ]; then
   TAG="$(curl -s "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name"' | cut -d'"' -f4)"

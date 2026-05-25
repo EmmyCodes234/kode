@@ -82,7 +82,7 @@ kode stats    — Analyze gatekeeper audit log for failure patterns
 
 - [x] Agent identity prompts (9 session prompt files) — OpenCode → Kode
 - [x] Env var flags (40 OPENCODE_* → KODE_*) across 23 consumer files
-- [x] HTTP headers, GitHub URLs → EmmyCodes234/kode
+- [x] HTTP headers, GitHub URLs → sicario-labs/kode
 - [x] Provider IDs (opencode → kode, opencode-go → kode-go)
 - [x] SDK types (OpencodeClient → KodeClient, 50+ files)
 - [x] customize-kode.md skill file rebrand (49 references)
@@ -95,7 +95,7 @@ kode stats    — Analyze gatekeeper audit log for failure patterns
 - [x] `kode init` — scaffold `.kode/kode.json` with sensible defaults
 - [x] CI pipeline — Go test + build on Linux/Windows/macOS
 - [x] Release workflow — cross-platform binaries on tag push
-- [x] `go install github.com/EmmyCodes234/kode/cmd/kode@latest`
+- [x] `go install github.com/sicario-labs/kode/cmd/kode@latest`
 
 ---
 
