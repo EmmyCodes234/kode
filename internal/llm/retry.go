@@ -2,6 +2,7 @@ package llm
 
 import (
 	"context"
+	"errors"
 	"math/rand"
 	"time"
 )
@@ -24,10 +25,10 @@ func isRetryable(err error) bool {
 	if err == nil {
 		return false
 	}
-	if err == ErrRateLimit {
+	if errors.Is(err, ErrRateLimit) {
 		return true
 	}
-	if err == ErrAPIRequest {
+	if errors.Is(err, ErrAPIRequest) {
 		return true
 	}
 	return false

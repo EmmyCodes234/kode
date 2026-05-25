@@ -59,10 +59,10 @@ func (c *Client) Chat(ctx context.Context, req ChatRequest) (*ChatResponse, erro
 	}
 
 	if resp.StatusCode == http.StatusTooManyRequests {
-		return nil, ErrRateLimit
+		return nil, fmt.Errorf("%w: %s", ErrRateLimit, strings.TrimSpace(string(respBody)))
 	}
 	if resp.StatusCode == http.StatusUnauthorized {
-		return nil, ErrAuthFailed
+		return nil, fmt.Errorf("%w: %s", ErrAuthFailed, strings.TrimSpace(string(respBody)))
 	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("%w: status %d: %s", ErrAPIRequest, resp.StatusCode, strings.TrimSpace(string(respBody)))
