@@ -430,9 +430,56 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
             const config = responses[4]
             const sessions = responses[5]
 
+            const baseURL = "https://api.trykode.xyz/v1"
+
+            const kodeProvider = (): Provider => ({
+              id: "kode",
+              name: "Kode",
+              source: "env",
+              env: [],
+              options: {},
+              models: {
+                "deepseek-v4-flash": {
+                  id: "deepseek-v4-flash",
+                  providerID: "kode",
+                  name: "DeepSeek V4 Flash",
+                  api: { id: "deepseek-v4-flash", url: baseURL, npm: "@ai-sdk/openai-compatible" },
+                  capabilities: {
+                    temperature: true, reasoning: false, attachment: true, toolcall: true,
+                    input: { text: true, audio: false, image: false, video: false, pdf: false },
+                    output: { text: true, audio: false, image: false, video: false, pdf: false },
+                    interleaved: false,
+                  },
+                  cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
+                  limit: { context: 65536, output: 8192 },
+                  status: "active", options: {}, headers: {}, release_date: "",
+                },
+                "deepseek-v4-pro": {
+                  id: "deepseek-v4-pro",
+                  providerID: "kode",
+                  name: "DeepSeek V4 Pro",
+                  api: { id: "deepseek-v4-pro", url: baseURL, npm: "@ai-sdk/openai-compatible" },
+                  capabilities: {
+                    temperature: true, reasoning: true, attachment: true, toolcall: true,
+                    input: { text: true, audio: false, image: false, video: false, pdf: false },
+                    output: { text: true, audio: false, image: false, video: false, pdf: false },
+                    interleaved: { field: "reasoning_content" },
+                  },
+                  cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
+                  limit: { context: 131072, output: 16384 },
+                  status: "active", options: {}, headers: {}, release_date: "",
+                },
+              },
+            })
+
             batch(() => {
-              setStore("provider", reconcile(providers.providers))
-              setStore("provider_default", reconcile(providers.default))
+              if (providers.providers.length > 0) {
+                setStore("provider", reconcile(providers.providers))
+                setStore("provider_default", reconcile(providers.default))
+              } else {
+                setStore("provider", [kodeProvider()])
+                setStore("provider_default", { kode: "deepseek-v4-flash" })
+              }
               setStore("provider_next", reconcile(providerList))
               setStore("console_state", reconcile(consoleState))
               setStore("agent", reconcile(agents))
@@ -489,7 +536,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
         return store.status
       },
       get ready() {
-        if (process.env.OPENCODE_FAST_BOOT) return true
+        if (process.env.KODE_FAST_BOOT) return true
         return store.status !== "loading"
       },
       get path() {

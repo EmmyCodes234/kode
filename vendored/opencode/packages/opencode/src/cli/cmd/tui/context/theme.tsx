@@ -36,6 +36,7 @@ import vercel from "./theme/vercel.json" with { type: "json" }
 import vesper from "./theme/vesper.json" with { type: "json" }
 import zenburn from "./theme/zenburn.json" with { type: "json" }
 import carbonfox from "./theme/carbonfox.json" with { type: "json" }
+import voltCore from "./theme/volt-core.json" with { type: "json" }
 import { useKV } from "./kv"
 import { useRenderer } from "@opentui/solid"
 import { createStore, produce } from "solid-js/store"
@@ -120,6 +121,7 @@ export const DEFAULT_THEMES: Record<string, ThemeJson> = {
   vercel,
   zenburn,
   carbonfox,
+  ["volt-core"]: voltCore,
 }
 
 type State = {
@@ -156,7 +158,7 @@ const [store, setStore] = createStore<State>({
   themes: listThemes(),
   mode: "dark",
   lock: undefined,
-  active: "kode",
+  active: "volt-core",
   ready: false,
 })
 
@@ -321,8 +323,8 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
         }
         draft.mode = mode
         draft.lock = lock
-        const active = config.theme ?? kv.get("theme", "kode")
-        draft.active = typeof active === "string" ? active : "kode"
+        const active = config.theme ?? kv.get("theme", "volt-core")
+        draft.active = typeof active === "string" ? active : "volt-core"
         draft.ready = false
       }),
     )
@@ -340,8 +342,8 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
             customThemes = custom
             syncThemes()
           })
-          .catch(() => {
-            setStore("active", "kode")
+            .catch(() => {
+            setStore("active", "volt-core")
           }),
       ]).finally(() => {
         setStore("ready", true)
@@ -360,7 +362,7 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
             systemTheme = undefined
             syncThemes()
             if (store.active === "system") {
-              setStore("active", "kode")
+              setStore("active", "volt-core")
             }
             return
           }
@@ -371,7 +373,7 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
           systemTheme = undefined
           syncThemes()
           if (store.active === "system") {
-            setStore("active", "kode")
+            setStore("active", "volt-core")
           }
         })
     }
@@ -429,7 +431,8 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
         }
       }
 
-      return resolveTheme(store.themes.opencode, store.mode)
+      const fallback = store.themes["volt-core"] ?? store.themes.opencode
+      return resolveTheme(fallback, store.mode)
     })
 
     createEffect(() => {

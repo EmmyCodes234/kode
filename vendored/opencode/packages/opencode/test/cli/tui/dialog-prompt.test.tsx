@@ -41,7 +41,7 @@ async function mountPrompt(input: {
     { ThemeProvider },
     { TuiConfigProvider },
     { ToastProvider },
-    { KodeKeymapProvider, registerOpencodeKeymap },
+    { KodeKeymapProvider, registerKodeKeymap },
   ] = await Promise.all([
     import("../../../src/cli/cmd/tui/ui/dialog"),
     import("../../../src/cli/cmd/tui/ui/dialog-prompt"),
@@ -59,7 +59,7 @@ async function mountPrompt(input: {
       keybinds: input.keybinds,
       leader_timeout: 1000,
     })
-    const off = registerOpencodeKeymap(keymap, renderer, resolvedConfig)
+    const off = registerKodeKeymap(keymap, renderer, resolvedConfig)
     onCleanup(off)
 
     return (

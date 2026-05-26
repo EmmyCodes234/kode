@@ -158,7 +158,7 @@ const RECORDED_SCENARIOS = [
   {
     id: "opencode-proxy",
     name: "OpenCode proxy",
-    providerID: ProviderID.opencode,
+    providerID: ProviderID.kode,
     modelID: "gpt-5.2-codex",
     cassette: "session/native-zen-tool-loop",
     protocol: "openai-responses",
@@ -166,7 +166,7 @@ const RECORDED_SCENARIOS = [
     canRecord: () => Boolean(process.env.KODE_RECORD_CONSOLE_TOKEN && process.env.KODE_RECORD_ZEN_ORG_ID),
     config: (model) =>
       providerConfig({
-        providerID: ProviderID.opencode,
+        providerID: ProviderID.kode,
         name: "OpenCode Zen",
         env: ["KODE_CONSOLE_TOKEN"],
         npm: "@ai-sdk/openai-compatible",

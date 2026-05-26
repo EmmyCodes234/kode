@@ -176,6 +176,49 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
         Boolean(yield* dep.auth(input.id)) ||
         Boolean((yield* dep.config()).provider?.["Kode"]?.options?.apiKey)
 
+      const baseURL = "https://api.trykode.xyz/v1"
+
+      const trykodeModels: Record<string, Model> = {
+        "deepseek-v4-flash": {
+          id: ModelID.make("deepseek-v4-flash"),
+          providerID: ProviderID.make("kode"),
+          name: "DeepSeek V4 Flash",
+          family: "deepseek-v4",
+          api: { id: "deepseek-v4-flash", url: baseURL, npm: "@ai-sdk/openai-compatible" },
+          capabilities: {
+            temperature: true, reasoning: false, attachment: true, toolcall: true,
+            input: { text: true, audio: false, image: false, video: false, pdf: false },
+            output: { text: true, audio: false, image: false, video: false, pdf: false },
+            interleaved: false,
+          },
+          cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
+          limit: { context: 65536, output: 8192 },
+          status: "active", options: {}, headers: {}, release_date: "",
+          variants: {},
+        },
+        "deepseek-v4-pro": {
+          id: ModelID.make("deepseek-v4-pro"),
+          providerID: ProviderID.make("kode"),
+          name: "DeepSeek V4 Pro",
+          family: "deepseek-v4",
+          api: { id: "deepseek-v4-pro", url: baseURL, npm: "@ai-sdk/openai-compatible" },
+          capabilities: {
+            temperature: true, reasoning: true, attachment: true, toolcall: true,
+            input: { text: true, audio: false, image: false, video: false, pdf: false },
+            output: { text: true, audio: false, image: false, video: false, pdf: false },
+            interleaved: { field: "reasoning_content" },
+          },
+          cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
+          limit: { context: 131072, output: 16384 },
+          status: "active", options: {}, headers: {}, release_date: "",
+          variants: {},
+        },
+      }
+
+      for (const [id, model] of Object.entries(trykodeModels)) {
+        input.models[id] = model
+      }
+
       if (!ok) {
         for (const [key, value] of Object.entries(input.models)) {
           if (value.cost.input === 0) continue
@@ -184,7 +227,7 @@ function custom(dep: CustomDep): Record<string, CustomLoader> {
       }
 
       return {
-        autoload: Object.keys(input.models).length > 0,
+        autoload: true,
         options: ok ? {} : { apiKey: "public" },
       }
     }),

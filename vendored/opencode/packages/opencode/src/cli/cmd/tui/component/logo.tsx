@@ -190,7 +190,7 @@ function noise(x: number, y: number, t: number) {
 }
 
 function lit(char: string) {
-  return char !== " " && char !== "_" && char !== "~" && char !== ","
+  return char !== " " && char !== "~"
 }
 
 function key(x: number, y: number) {
@@ -738,19 +738,6 @@ export function Logo(props: { shape?: LogoShape; ink?: RGBA; idle?: boolean } = 
       const b = charLit ? bloom(off + i, y, frame, ctx) : 0
       const q = shimmer(off + i, y, frame, ctx)
 
-      if (char === "_") {
-        return (
-          <text
-            fg={shade(inkTinted, theme, s * 0.08)}
-            bg={shade(shadowTinted, theme, ghost(s, 0.24) + ghost(q, 0.06))}
-            attributes={attrs}
-            selectable={false}
-          >
-            {" "}
-          </text>
-        )
-      }
-
       if (char === "^") {
         return (
           <text
@@ -768,14 +755,6 @@ export function Logo(props: { shape?: LogoShape; ink?: RGBA; idle?: boolean } = 
         return (
           <text fg={shade(shadowTop, theme, ghost(s, 0.22) + ghost(q, 0.05))} attributes={attrs} selectable={false}>
             ▀
-          </text>
-        )
-      }
-
-      if (char === ",") {
-        return (
-          <text fg={shade(shadowBot, theme, ghost(s, 0.22) + ghost(q, 0.05))} attributes={attrs} selectable={false}>
-            ▄
           </text>
         )
       }

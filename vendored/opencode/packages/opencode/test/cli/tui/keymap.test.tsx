@@ -4,7 +4,7 @@ import { testRender, useRenderer } from "@opentui/solid"
 import { expect, test } from "bun:test"
 import { onCleanup } from "solid-js"
 import { createTuiResolvedConfig } from "../../fixture/tui-runtime"
-import { KodeKeymapProvider, registerOpencodeKeymap } from "@/cli/cmd/tui/keymap"
+import { KodeKeymapProvider, registerKodeKeymap } from "@/cli/cmd/tui/keymap"
 
 test("legacy page key aliases compile as page keys", async () => {
   const sequences: Record<string, string[][]> = {}
@@ -18,7 +18,7 @@ test("legacy page key aliases compile as page keys", async () => {
         messages_page_down: "pgdown",
       },
     })
-    const offKeymap = registerOpencodeKeymap(keymap, renderer, config)
+    const offKeymap = registerKodeKeymap(keymap, renderer, config)
     const offLayer = keymap.registerLayer({
       bindings: config.keybinds.gather("session", ["session.page.up", "session.page.down"]),
     })

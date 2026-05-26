@@ -12,7 +12,7 @@ import { useEditorContext } from "@tui/context/editor"
 
 let once = false
 const placeholder = {
-  normal: ["Fix a TODO in the codebase", "What is the tech stack of this project?", "Fix broken tests"],
+  normal: ["Vibe check a mutation", "Architect a cache invalidation strategy", "Draft a RFC for the proposal"],
   shell: ["ls -la", "git status", "pwd"],
 }
 

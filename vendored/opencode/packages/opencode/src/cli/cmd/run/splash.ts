@@ -50,11 +50,6 @@ let id = 0
 function cells(line: string): Cell[] {
   const list: Cell[] = []
   for (const char of line) {
-    if (char === "_") {
-      list.push({ char: " ", mark: "full" })
-      continue
-    }
-
     if (char === "^") {
       list.push({ char: "▀", mark: "mix" })
       continue
