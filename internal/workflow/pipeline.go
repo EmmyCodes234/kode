@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	kodecontext "github.com/kode/kode/internal/context"
 	"github.com/kode/kode/internal/execution"
 	"github.com/kode/kode/internal/llm"
 )
@@ -82,6 +83,18 @@ func (p *Pipeline) Run(ctx context.Context, task string) (*Result, error) {
 		}
 		contextStr = string(data)
 	}
+
+	if contextStr == "" && p.config.EnableContextIndex && absDir != "" {
+		builder := kodecontext.NewBuilder()
+		fullCtx, err := builder.BuildFullContext(absDir)
+		if err != nil {
+			// Non-fatal — continue without auto-context
+			contextStr = ""
+		} else {
+			contextStr = fullCtx
+		}
+	}
+
 	if fn, ok := p.afterStage[StagePlan]; ok {
 		fn(state, nil)
 	}

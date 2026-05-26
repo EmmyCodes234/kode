@@ -1,15 +1,32 @@
 package ghost
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 )
 
+var worktreeMu sync.Mutex
+
+func gitExec(ctx context.Context, repoDir string, name string, args ...string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, name, args...)
+	cmd.Dir = repoDir
+	out, err := cmd.CombinedOutput()
+	if ctx.Err() != nil {
+		return out, fmt.Errorf("git operation timed out after 30s: %s %v", name, args)
+	}
+	return out, err
+}
+
 type WorktreeManager struct {
-	repoDir string
+	repoDir  string
 	ghostDir string
 }
 
@@ -20,7 +37,10 @@ func NewWorktreeManager(repoDir string) *WorktreeManager {
 	}
 }
 
-func (w *WorktreeManager) Create(spec BranchSpec) (string, error) {
+func (w *WorktreeManager) Create(ctx context.Context, spec BranchSpec) (string, error) {
+	worktreeMu.Lock()
+	defer worktreeMu.Unlock()
+
 	branchName := fmt.Sprintf("ghost/%s", spec.ID)
 	worktreePath := filepath.Join(w.ghostDir, string(spec.ID))
 
@@ -28,62 +48,49 @@ func (w *WorktreeManager) Create(spec BranchSpec) (string, error) {
 		return "", fmt.Errorf("create ghost dir: %w", err)
 	}
 
+	// Inline cleanup of stale worktree (must NOT call w.Remove to avoid deadlock)
 	if _, err := os.Stat(worktreePath); err == nil {
-		w.Remove(spec.ID)
+		gitExec(ctx, w.repoDir, "git", "worktree", "remove", worktreePath)
+		gitExec(ctx, w.repoDir, "git", "branch", "-D", branchName)
+		os.RemoveAll(worktreePath)
 	}
 
-	// Create orphan branch for this ghost
-	orphan := exec.Command("git", "switch", "--orphan", branchName)
-	orphan.Dir = w.repoDir
-	orphan.Run()
-	_ = exec.Command("git", "rm", "-rf", ".").Run()
+	gitExec(ctx, w.repoDir, "git", "switch", "--orphan", branchName)
+	gitExec(ctx, w.repoDir, "git", "rm", "-rf", ".")
+	gitExec(ctx, w.repoDir, "git", "checkout", "-b", branchName)
 
-	// Reset to current HEAD first
-	reset := exec.Command("git", "checkout", "-b", branchName)
-	reset.Dir = w.repoDir
-	reset.Run()
-
-	// Add the worktree pointing at this branch
-	add := exec.Command("git", "worktree", "add", worktreePath, "HEAD")
-	add.Dir = w.repoDir
-	if out, err := add.CombinedOutput(); err != nil {
-		// Fallback: checkout branch first
-		exec.Command("git", "checkout", "-b", branchName).Dir = w.repoDir
-		add = exec.Command("git", "worktree", "add", worktreePath, branchName)
-		add.Dir = w.repoDir
-		if out2, err2 := add.CombinedOutput(); err2 != nil {
+	_, err := gitExec(ctx, w.repoDir, "git", "worktree", "add", worktreePath, "HEAD")
+	if err != nil {
+		gitExec(ctx, w.repoDir, "git", "checkout", "-b", branchName)
+		if out2, err2 := gitExec(ctx, w.repoDir, "git", "worktree", "add", worktreePath, branchName); err2 != nil {
 			return "", fmt.Errorf("create worktree: %s: %w", string(out2), err2)
 		}
-		_ = string(out)
 	}
 
 	return worktreePath, nil
 }
 
-func (w *WorktreeManager) Remove(id BranchID) error {
+func (w *WorktreeManager) Remove(ctx context.Context, id BranchID) error {
+	worktreeMu.Lock()
+	defer worktreeMu.Unlock()
+
 	worktreePath := filepath.Join(w.ghostDir, string(id))
-	remove := exec.Command("git", "worktree", "remove", worktreePath)
-	remove.Dir = w.repoDir
-	remove.Run()
+	gitExec(ctx, w.repoDir, "git", "worktree", "remove", worktreePath)
 
 	branchName := fmt.Sprintf("ghost/%s", id)
-	branchDel := exec.Command("git", "branch", "-D", branchName)
-	branchDel.Dir = w.repoDir
-	branchDel.Run()
+	gitExec(ctx, w.repoDir, "git", "branch", "-D", branchName)
 
 	os.RemoveAll(worktreePath)
 	return nil
 }
 
-func (w *WorktreeManager) MergeWinner(id BranchID) error {
+func (w *WorktreeManager) MergeWinner(ctx context.Context, id BranchID) error {
+	worktreeMu.Lock()
+	defer worktreeMu.Unlock()
+
 	branchName := fmt.Sprintf("ghost/%s", id)
-	merge := exec.Command("git", "merge", "--squash", branchName)
-	merge.Dir = w.repoDir
-	if out, err := merge.CombinedOutput(); err != nil {
-		// Try with --allow-unrelated-histories
-		merge2 := exec.Command("git", "merge", "--squash", "--allow-unrelated-histories", branchName)
-		merge2.Dir = w.repoDir
-		if out2, err2 := merge2.CombinedOutput(); err2 != nil {
+	if out, err := gitExec(ctx, w.repoDir, "git", "merge", "--squash", branchName); err != nil {
+		if out2, err2 := gitExec(ctx, w.repoDir, "git", "merge", "--squash", "--allow-unrelated-histories", branchName); err2 != nil {
 			return fmt.Errorf("merge failed: %s: %w", string(out2), err2)
 		}
 		_ = string(out)
@@ -91,10 +98,9 @@ func (w *WorktreeManager) MergeWinner(id BranchID) error {
 	return nil
 }
 
-func (w *WorktreeManager) SwitchBack() error {
-	checkout := exec.Command("git", "checkout", "-")
-	checkout.Dir = w.repoDir
-	return checkout.Run()
+func (w *WorktreeManager) SwitchBack(ctx context.Context) error {
+	_, err := gitExec(ctx, w.repoDir, "git", "checkout", "-")
+	return err
 }
 
 func (w *WorktreeManager) GhostDir() string {
@@ -102,14 +108,14 @@ func (w *WorktreeManager) GhostDir() string {
 }
 
 func (w *WorktreeManager) CurrentBranch() string {
-	out, err := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD").Output()
+	out, err := gitExec(context.Background(), w.repoDir, "git", "rev-parse", "--abbrev-ref", "HEAD")
 	if err != nil {
 		return "main"
 	}
 	return strings.TrimSpace(string(out))
 }
 
-func (w *WorktreeManager) Cleanup() {
+func (w *WorktreeManager) Cleanup(ctx context.Context) {
 	entries, err := os.ReadDir(w.ghostDir)
 	if err != nil {
 		return
@@ -118,7 +124,6 @@ func (w *WorktreeManager) Cleanup() {
 		if !e.IsDir() {
 			continue
 		}
-		id := BranchID(e.Name())
-		w.Remove(id)
+		w.Remove(ctx, BranchID(e.Name()))
 	}
 }

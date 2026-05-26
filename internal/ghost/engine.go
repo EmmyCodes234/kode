@@ -41,7 +41,7 @@ func (e *GhostEngine) Run(ctx context.Context, cfg GhostRunConfig) (*GhostSummar
 		return nil, fmt.Errorf("branch strategies: %w", err)
 	}
 
-	e.worktrees.Cleanup()
+	e.worktrees.Cleanup(ctx)
 	_ = e.worktrees.CurrentBranch()
 
 	results := make([]*BranchResult, len(specs))
@@ -57,6 +57,11 @@ func (e *GhostEngine) Run(ctx context.Context, cfg GhostRunConfig) (*GhostSummar
 		go func() {
 			defer wg.Done()
 			for item := range work {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
 				results[item.idx] = e.executeBranch(ctx, item.spec, start)
 			}
 		}()
@@ -71,7 +76,7 @@ func (e *GhostEngine) Run(ctx context.Context, cfg GhostRunConfig) (*GhostSummar
 	winner := SelectWinner(results)
 
 	if winner != nil {
-		if err := e.worktrees.MergeWinner(winner.ID); err != nil {
+		if err := e.worktrees.MergeWinner(ctx, winner.ID); err != nil {
 			fmt.Fprintf(os.Stderr, "  ghost: merge warning: %v\n", err)
 		}
 	}
@@ -81,7 +86,7 @@ func (e *GhostEngine) Run(ctx context.Context, cfg GhostRunConfig) (*GhostSummar
 		if winner != nil && r.ID == winner.ID {
 			continue
 		}
-		e.worktrees.Remove(r.ID)
+		e.worktrees.Remove(ctx, r.ID)
 	}
 
 	totalTime := time.Since(start)
@@ -101,14 +106,26 @@ func (e *GhostEngine) Run(ctx context.Context, cfg GhostRunConfig) (*GhostSummar
 	return summary, nil
 }
 
-func (e *GhostEngine) executeBranch(ctx context.Context, spec BranchSpec, globalStart time.Time) *BranchResult {
+func (e *GhostEngine) executeBranch(ctx context.Context, spec BranchSpec, globalStart time.Time) (result *BranchResult) {
 	branchStart := time.Now()
-	result := &BranchResult{
+	result = &BranchResult{
 		ID:       spec.ID,
 		Strategy: spec.Strategy,
 	}
 
-	worktreePath, err := e.worktrees.Create(spec)
+	defer func() {
+		if r := recover(); r != nil {
+			result.Status = execution.StatusFail
+			result.Error = fmt.Sprintf("panic: %v", r)
+			result.Duration = time.Since(branchStart)
+		}
+		// Ensure worktree is cleaned up on any failure
+		if result.Status == execution.StatusFail && result.WorktreePath != "" {
+			e.worktrees.Remove(ctx, spec.ID)
+		}
+	}()
+
+	worktreePath, err := e.worktrees.Create(ctx, spec)
 	if err != nil {
 		result.Status = execution.StatusFail
 		result.Error = fmt.Sprintf("worktree: %v", err)
@@ -118,9 +135,10 @@ func (e *GhostEngine) executeBranch(ctx context.Context, spec BranchSpec, global
 	result.WorktreePath = worktreePath
 
 	pipe := workflow.NewPipeline(workflow.Config{
-		LLMConfig:   e.llmConfig,
-		TestCommand: e.testCommand,
-		MaxRetries:  2,
+		LLMConfig:          e.llmConfig,
+		TestCommand:        e.testCommand,
+		MaxRetries:         2,
+		EnableContextIndex: true,
 	})
 
 	pipe.BeforeStage(workflow.StageGenerate, func(s *workflow.State) {
@@ -153,5 +171,5 @@ func (e *GhostEngine) executeBranch(ctx context.Context, spec BranchSpec, global
 }
 
 func (e *GhostEngine) Cleanup() {
-	e.worktrees.Cleanup()
+	e.worktrees.Cleanup(context.Background())
 }

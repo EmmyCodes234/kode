@@ -30,13 +30,14 @@ type State struct {
 }
 
 type Config struct {
-	LLMConfig     *llm.Config
-	MaxRetries    int
-	TestCommand   string
-	ModelOverride string
-	ContextFile   string
-	RepairFunc    execution.RepairFunc
-	TokenBudget   *llm.TokenBudget
+	LLMConfig          *llm.Config
+	MaxRetries         int
+	TestCommand        string
+	ModelOverride      string
+	ContextFile        string
+	RepairFunc         execution.RepairFunc
+	TokenBudget        *llm.TokenBudget
+	EnableContextIndex bool
 }
 
 type Result struct {

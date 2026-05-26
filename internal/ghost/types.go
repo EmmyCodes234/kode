@@ -7,6 +7,8 @@ import (
 	"github.com/kode/kode/internal/execution"
 )
 
+var ErrBranchPanic = fmt.Errorf("branch goroutine panic")
+
 type BranchStrategy string
 
 const (
