@@ -1295,7 +1295,7 @@ export const layer = Layer.effect(
             providers[providerID] = mergeDeep(existing, provider)
             return
           }
-          const match = database[providerID]
+          const match = database[providerID] || provider
           if (!match) return
           // @ts-expect-error
           providers[providerID] = mergeDeep(match, provider)
@@ -1486,10 +1486,9 @@ export const layer = Layer.effect(
         for (const [id, fn] of Object.entries(custom(dep))) {
           const providerID = ProviderID.make(id)
           if (disabled.has(providerID)) continue
-          const data = database[providerID]
+          let data = database[providerID]
           if (!data) {
-            log.error("Provider does not exist in model list " + providerID)
-            continue
+            data = { id: providerID, name: id, source: "custom", env: [], models: {}, options: {} }
           }
           const result = yield* fn(data)
           if (result && (result.autoload || providers[providerID])) {
