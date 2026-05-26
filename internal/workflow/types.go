@@ -5,6 +5,7 @@ import (
 
 	"github.com/kode/kode/internal/execution"
 	"github.com/kode/kode/internal/llm"
+	"github.com/kode/kode/internal/router"
 )
 
 type Stage string
@@ -38,6 +39,7 @@ type Config struct {
 	RepairFunc         execution.RepairFunc
 	TokenBudget        *llm.TokenBudget
 	EnableContextIndex bool
+	RouterConfig       *router.RouteConfig
 }
 
 type Result struct {

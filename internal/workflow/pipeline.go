@@ -11,6 +11,7 @@ import (
 	kodecontext "github.com/kode/kode/internal/context"
 	"github.com/kode/kode/internal/execution"
 	"github.com/kode/kode/internal/llm"
+	"github.com/kode/kode/internal/router"
 )
 
 func NewPipeline(config Config) *Pipeline {
@@ -115,7 +116,7 @@ func (p *Pipeline) Run(ctx context.Context, task string) (*Result, error) {
 
 	userPrompt := llm.BuildGeneratePrompt(task, contextStr)
 	client := llm.NewClient(cfg)
-	resp, err := client.Chat(ctx, llm.ChatRequest{
+	resp, err := p.callLLM(ctx, client, llm.ChatRequest{
 		Model:       cfg.Model,
 		Messages:    []llm.Message{{Role: llm.RoleSystem, Content: llm.SystemPrompt}, {Role: llm.RoleUser, Content: userPrompt}},
 		Temperature: 0.2,
@@ -183,7 +184,7 @@ func (p *Pipeline) Run(ctx context.Context, task string) (*Result, error) {
 			if budgetTracker != nil && budgetTracker.IsExceeded() {
 				return nil, fmt.Errorf("budget exceeded: %s", budgetTracker.ExceededMessage())
 			}
-			resp, err := client.Chat(rCtx, llm.ChatRequest{
+			resp, err := p.callLLM(rCtx, client, llm.ChatRequest{
 				Model:       cfg.Model,
 				Messages:    []llm.Message{{Role: llm.RoleSystem, Content: llm.SystemPrompt}, {Role: llm.RoleUser, Content: prompt}},
 				Temperature: 0.2,
@@ -334,4 +335,12 @@ func (s *State) WithContext(projectRoot string) *State {
 
 func AllStages() []Stage {
 	return []Stage{StagePlan, StageCritique, StageGenerate, StageVerify, StageApply, StageTest}
+}
+
+func (p *Pipeline) callLLM(ctx context.Context, client *llm.Client, req llm.ChatRequest) (*llm.ChatResponse, error) {
+	if p.config.RouterConfig != nil {
+		r := router.NewRouter(*p.config.RouterConfig)
+		return r.Chat(ctx, req)
+	}
+	return client.ChatWithRetry(ctx, req, llm.DefaultRetryConfig())
 }

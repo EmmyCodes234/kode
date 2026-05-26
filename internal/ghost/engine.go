@@ -119,7 +119,6 @@ func (e *GhostEngine) executeBranch(ctx context.Context, spec BranchSpec, global
 			result.Error = fmt.Sprintf("panic: %v", r)
 			result.Duration = time.Since(branchStart)
 		}
-		// Ensure worktree is cleaned up on any failure
 		if result.Status == execution.StatusFail && result.WorktreePath != "" {
 			e.worktrees.Remove(ctx, spec.ID)
 		}
@@ -134,37 +133,58 @@ func (e *GhostEngine) executeBranch(ctx context.Context, spec BranchSpec, global
 	}
 	result.WorktreePath = worktreePath
 
-	pipe := workflow.NewPipeline(workflow.Config{
-		LLMConfig:          e.llmConfig,
-		TestCommand:        e.testCommand,
-		MaxRetries:         2,
-		EnableContextIndex: true,
-	})
+	// Self-healing retry loop: up to 3 attempts with escalating prompts
+	maxAttempts := 3
+	prompt := spec.Prompt
 
-	pipe.BeforeStage(workflow.StageGenerate, func(s *workflow.State) {
-		s.ProjectRoot = worktreePath
-	})
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		result.Duration = time.Since(branchStart)
 
-	res, pipeErr := pipe.Run(ctx, spec.Prompt)
-	result.Duration = time.Since(branchStart)
+		pipe := workflow.NewPipeline(workflow.Config{
+			LLMConfig:          e.llmConfig,
+			TestCommand:        e.testCommand,
+			MaxRetries:         2,
+			EnableContextIndex: true,
+		})
 
-	if pipeErr != nil {
-		result.Status = execution.StatusFail
-		result.Error = pipeErr.Error()
-		return result
-	}
+		pipe.BeforeStage(workflow.StageGenerate, func(s *workflow.State) {
+			s.ProjectRoot = worktreePath
+		})
 
-	if res == nil {
-		result.Status = execution.StatusFail
-		result.Error = "pipeline returned nil"
-		return result
-	}
+		res, pipeErr := pipe.Run(ctx, prompt)
 
-	result.Status = res.Status
-	result.Summary = res.State.Summary
-	if res.State.Summary != nil {
-		result.GatesPassed = len(res.State.Summary.AppliedHunks)
-		result.BlastRadius = len(res.State.Summary.AppliedHunks)
+		if pipeErr == nil && res != nil && res.Status == execution.StatusPass {
+			result.Status = res.Status
+			result.Summary = res.State.Summary
+			if res.State.Summary != nil {
+				result.GatesPassed = len(res.State.Summary.AppliedHunks)
+				result.BlastRadius = len(res.State.Summary.AppliedHunks)
+			}
+			return result
+		}
+
+		// Capture failure details for retry escalation
+		var failureDetail string
+		if pipeErr != nil {
+			failureDetail = pipeErr.Error()
+		} else if res != nil && len(res.State.Errors) > 0 {
+			failureDetail = res.State.Errors[len(res.State.Errors)-1]
+		} else {
+			failureDetail = "unknown failure"
+		}
+
+		if attempt == maxAttempts {
+			result.Status = execution.StatusFail
+			result.Error = failureDetail
+			return result
+		}
+
+		// Escalate prompt with failure context
+		escalations := []string{
+			"\n\n[RETRY] Previous attempt failed. Focus on simpler, more reliable code. Avoid complex patterns.",
+			"\n\n[RETRY] Still failing. Try an even simpler approach. Break the change into smaller steps. Ensure all referenced types and functions exist.",
+		}
+		prompt = spec.Prompt + escalations[attempt-1] + "\n\nPrevious error: " + failureDetail
 	}
 
 	return result
