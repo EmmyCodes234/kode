@@ -136,11 +136,17 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Upgrade npm to v11 for OIDC support
+        run: npm install -g npm@11
+
       - name: Update version in npm package
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           npm version "$VERSION" --no-git-tag-version --allow-same-version
         working-directory: packages/npm
+
+      - name: Verify npm version with provenance support
+        run: npm --version
 
       - name: Publish to npm
         run: npm publish --provenance --access public
