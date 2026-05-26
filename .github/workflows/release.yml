@@ -150,5 +150,10 @@ jobs:
         run: npm --version
 
       - name: Publish to npm
-        run: npm publish --provenance --access public
+        run: |
+          TAG="latest"
+          case "${GITHUB_REF_NAME#v}" in
+            *-*) TAG="next" ;;
+          esac
+          npm publish --provenance --access public --tag "$TAG"
         working-directory: packages/npm
