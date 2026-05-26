@@ -161,6 +161,24 @@ func ensureTUI() (string, error) {
 		return "", fmt.Errorf("download TUI: %w", err)
 	}
 
+	// Download platform-specific compiled binary if available
+	if binaryURL := tuiBinaryURL(tag); binaryURL != "" {
+		fmt.Fprintf(os.Stderr, "Downloading TUI compiled binary...\n")
+		binDir := filepath.Join(tuiDir, "bin")
+		os.MkdirAll(binDir, 0755)
+		binName := "kode-tui"
+		if runtime.GOOS == "windows" {
+			binName = "kode-tui.exe"
+		}
+		binPath := filepath.Join(binDir, binName)
+		if err := downloadBinary(binaryURL, binPath); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: could not download compiled binary: %v\n", err)
+		} else {
+			os.Chmod(binPath, 0755)
+			fmt.Fprintf(os.Stderr, "Compiled binary saved to %s\n", binPath)
+		}
+	}
+
 	fmt.Fprintf(os.Stderr, "TUI bundle extracted to %s\n", tuiDir)
 	return tuiDir, nil
 }
@@ -229,6 +247,47 @@ func downloadAndExtract(url, destDir string) error {
 	return nil
 }
 
+func tuiBinaryURL(tag string) string {
+	arch := "x64"
+	if runtime.GOARCH == "arm64" {
+		arch = "arm64"
+	}
+	goos := runtime.GOOS
+
+	ext := ""
+	if goos == "windows" {
+		ext = ".exe"
+	}
+
+	filename := fmt.Sprintf("kode-tui-%s-%s%s", goos, arch, ext)
+	if tag == "" || tag == "dev" || tag == "none" || tag == "latest" {
+		return fmt.Sprintf("https://github.com/sicario-labs/kode/releases/latest/download/%s", filename)
+	}
+	v := strings.TrimPrefix(tag, "v")
+	return fmt.Sprintf("https://github.com/sicario-labs/kode/releases/download/v%s/%s", v, filename)
+}
+
+func downloadBinary(url, dest string) error {
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("HTTP %d", resp.StatusCode)
+	}
+
+	out, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	return err
+}
+
 func proxyTUI(tuiDir string, passthroughArgs []string) error {
 	selfPath, _ := os.Executable()
 
@@ -266,11 +325,12 @@ func proxyTUI(tuiDir string, passthroughArgs []string) error {
 		}
 	}
 
-	entry := "./packages/opencode/src/index.ts"
+	entry := "src/index.ts"
+	pkgDir := filepath.Join(tuiDir, "packages", "opencode")
 	bunArgs := append([]string{"run", "--conditions=browser", entry}, passthroughArgs...)
 
 	tsCmd := exec.Command(bunPath, bunArgs...)
-	tsCmd.Dir = tuiDir
+	tsCmd.Dir = pkgDir
 	tsCmd.Stdin = os.Stdin
 	tsCmd.Stdout = os.Stdout
 	tsCmd.Stderr = os.Stderr

@@ -78,16 +78,6 @@ jobs:
           cp vendored/opencode/tsconfig.json dist/tui/ 2>/dev/null || true
           echo "${GITHUB_REF_NAME#v}" > dist/tui/.kode-version
 
-      - name: Compile TUI binary for current platform
-        working-directory: vendored/opencode/packages/opencode
-        run: |
-          bun run script/build.ts --single --skip-embed-web-ui --skip-install 2>&1 || echo "TUI binary compilation skipped (not supported on this platform)"
-          if [ -d dist/*/bin ]; then
-            mkdir -p ../../../../dist/tui/bin
-            cp dist/*/bin/opencode ../../../../dist/tui/bin/kode-tui
-            chmod +x ../../../../dist/tui/bin/kode-tui 2>/dev/null || true
-          fi
-
       - name: Compress TUI bundle
         run: |
           cd dist
@@ -100,8 +90,49 @@ jobs:
           name: tui-bundle
           path: dist/tui-bundle.tar.gz*
 
+  compile-tui:
+    needs: [bundle-tui]
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            tui_os: linux
+            tui_arch: x64
+            ext: ""
+          - os: windows-latest
+            tui_os: windows
+            tui_arch: x64
+            ext: ".exe"
+          - os: macos-latest
+            tui_os: darwin
+            tui_arch: arm64
+            ext: ""
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install TUI dependencies
+        working-directory: vendored/opencode
+        run: bun install --frozen-lockfile
+
+      - name: Compile TUI binary
+        working-directory: vendored/opencode/packages/opencode
+        run: |
+          bun run script/build.ts --single --skip-embed-web-ui --skip-install 2>&1
+          mkdir -p ../../../../dist
+          cp dist/*/bin/opencode${{ matrix.ext }} ../../../../dist/kode-tui-${{ matrix.tui_os }}-${{ matrix.tui_arch }}${{ matrix.ext }}
+        shell: bash
+
+      - name: Upload TUI binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: kode-tui-${{ matrix.tui_os }}-${{ matrix.tui_arch }}
+          path: dist/kode-tui-${{ matrix.tui_os }}-${{ matrix.tui_arch }}${{ matrix.ext }}
+
   release:
-    needs: [build, bundle-tui]
+    needs: [build, bundle-tui, compile-tui]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -114,11 +145,15 @@ jobs:
       - name: Organize release assets
         run: |
           mkdir -p release-assets
-          # Flatten binary artifacts
+          # Flatten Go binary artifacts
           for dir in dist/kode-*/; do
             [ -d "$dir" ] && cp "$dir"/* release-assets/ 2>/dev/null || true
           done
-          # Copy TUI bundle
+          # Flatten TUI binary artifacts
+          for dir in dist/kode-tui-*/; do
+            [ -d "$dir" ] && cp "$dir"/* release-assets/ 2>/dev/null || true
+          done
+          # Copy TUI source bundle
           cp dist/tui-bundle/tui-bundle.tar.gz* release-assets/ 2>/dev/null || true
           # Copy install scripts
           cp script/install.sh release-assets/ 2>/dev/null || true
