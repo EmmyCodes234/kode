@@ -469,6 +469,21 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
                   limit: { context: 131072, output: 16384 },
                   status: "active", options: {}, headers: {}, release_date: "",
                 },
+                "nemotron-3-free": {
+                  id: "nemotron-3-free",
+                  providerID: "kode",
+                  name: "Nemotron 3 Nano",
+                  api: { id: "nvidia/nemotron-3-nano-30b-a3b:free", url: baseURL, npm: "@ai-sdk/openai-compatible" },
+                  capabilities: {
+                    temperature: true, reasoning: true, attachment: true, toolcall: true,
+                    input: { text: true, audio: false, image: false, video: false, pdf: false },
+                    output: { text: true, audio: false, image: false, video: false, pdf: false },
+                    interleaved: { field: "reasoning_content" },
+                  },
+                  cost: { input: 0, output: 0, cache: { read: 0, write: 0 } },
+                  limit: { context: 131072, output: 16384 },
+                  status: "active", options: {}, headers: {}, release_date: "",
+                },
               },
             })
 

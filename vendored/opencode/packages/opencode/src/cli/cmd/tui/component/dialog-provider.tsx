@@ -17,8 +17,7 @@ import { useConnected } from "./use-connected"
 import { useBindings } from "../keymap"
 
 const PROVIDER_PRIORITY: Record<string, number> = {
-  opencode: 0,
-  "kode-go": 1,
+  kode: 0,
   openai: 2,
   "github-copilot": 3,
   anthropic: 4,
@@ -55,10 +54,9 @@ export function providerOptions(list: { id: string; name: string }[]): ProviderO
         value: provider.id,
         providerID: provider.id,
         description: {
-          opencode: "(Recommended)",
+          kode: "(Recommended)",
           anthropic: "(API key)",
           openai: "(ChatGPT Plus/Pro or API key)",
-          "kode-go": "Low cost subscription for everyone",
         }[provider.id],
         category: provider.id in PROVIDER_PRIORITY ? "Popular" : "Providers",
       })),
@@ -355,25 +353,10 @@ function ApiMethod(props: ApiMethodProps) {
       placeholder="API key"
       description={
         {
-          opencode: (
+          kode: (
             <box gap={1}>
               <text fg={theme.textMuted}>
-                Kode Engine gives you access to all the best coding models at the cheapest prices with a single API
-                key.
-              </text>
-              <text fg={theme.text}>
-                Go to <span style={{ fg: theme.primary }}>https://kode.sh/zen</span> to get a key
-              </text>
-            </box>
-          ),
-          "kode-go": (
-            <box gap={1}>
-              <text fg={theme.textMuted}>
-                Kode Go is a $10 per month subscription that provides reliable access to popular open coding models
-                with generous usage limits.
-              </text>
-              <text fg={theme.text}>
-                Go to <span style={{ fg: theme.primary }}>https://kode.sh/zen</span> and enable Kode Go
+                Enter your trykode.xyz API key to connect. Leave blank to use the default proxy.
               </text>
             </box>
           ),

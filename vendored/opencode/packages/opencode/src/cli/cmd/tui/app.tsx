@@ -689,7 +689,7 @@ function App(props: { onSnapshot?: () => Promise<string[]> }) {
         name: "docs.open",
         title: "Open docs",
         run: () => {
-          open("https://kode.sh/docs").catch(() => {})
+          open("https://trykode.xyz/docs").catch(() => {})
           dialog.clear()
         },
         category: "System",
