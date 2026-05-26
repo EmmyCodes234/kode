@@ -51,10 +51,6 @@ Examples:
 	rootCmd.AddCommand(tsCmd)
 }
 
-func proxyTUI(passthroughArgs []string) error {
-	return proxyEntry("./packages/opencode/src/index.ts", passthroughArgs)
-}
-
 func proxyCLI(args []string) error {
 	return proxyEntry("./packages/opencode/src/cli/cmd/index.ts", args)
 }
@@ -75,7 +71,11 @@ func confirmInstall(label, command string) bool {
 func proxyEntry(entry string, args []string) error {
 	tuiDir, err := findTUIDir()
 	if err != nil {
-		return err
+		// fallback: auto-download TUI
+		tuiDir, err = ensureTUI()
+		if err != nil {
+			return fmt.Errorf("TUI not available: %w\nRun in CLI mode instead: kode <command>", err)
+		}
 	}
 
 	bunPath, err := exec.LookPath("bun")
