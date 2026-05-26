@@ -1,5 +1,5 @@
 const { execFile, spawnSync } = require("child_process");
-const { existsSync, chmodSync, mkdirSync, createWriteStream, readFileSync } = require("fs");
+const { existsSync, chmodSync, mkdirSync, createWriteStream, readFileSync, rmSync } = require("fs");
 const { join } = require("path");
 const os = require("os");
 const https = require("https");
@@ -61,6 +61,11 @@ async function main() {
   let installedVersion = "";
   try { installedVersion = readFileSync(versionFile, "utf8").trim(); } catch {}
   if (installedVersion !== version) {
+    // Remove stale node_modules so bun install re-runs
+    const nm = join(tuiDir, "node_modules");
+    if (existsSync(nm)) {
+      try { rmSync(nm, { recursive: true, force: true }); } catch {}
+    }
     const bundleName = "tui-bundle.tar.gz";
     console.log(`Downloading TUI bundle (~52 MB)...`);
     const bundlePath = join(os.tmpdir(), bundleName);

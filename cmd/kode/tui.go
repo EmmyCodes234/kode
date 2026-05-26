@@ -128,7 +128,7 @@ func ensureTUI() (string, error) {
 		if match {
 			return tuiDir, nil
 		}
-		// Stale download — remove and re-download
+		// Stale version — remove and re-download
 		os.RemoveAll(tuiDir)
 	}
 
