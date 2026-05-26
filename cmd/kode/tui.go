@@ -87,12 +87,24 @@ func findTUIDir() (string, error) {
 		searchDirs = append(searchDirs, filepath.Join(homeDir, ".kode", tuiDirName))
 	}
 
+	bundleDir := ""
+	if homeDir != "" {
+		bundleDir = filepath.Join(homeDir, ".kode", tuiDirName)
+	}
+
 	for _, dir := range searchDirs {
 		abs, err := filepath.Abs(dir)
 		if err != nil {
 			continue
 		}
 		if info, statErr := os.Stat(abs); statErr == nil && info.IsDir() {
+			// For downloaded bundles (~/.kode/tui/), verify patches/ exists
+			// to detect stale downloads from before patches were included.
+			if bundleDir != "" && abs == bundleDir {
+				if _, err := os.Stat(filepath.Join(abs, "patches")); os.IsNotExist(err) {
+					continue
+				}
+			}
 			return abs, nil
 		}
 	}
@@ -109,9 +121,13 @@ func ensureTUI() (string, error) {
 	kodeDir := filepath.Join(homeDir, ".kode")
 	tuiDir := filepath.Join(kodeDir, tuiDirName)
 
-	// Already exists?
+	// Already exists? Verify complete (patches/ present as migration marker)
 	if info, err := os.Stat(tuiDir); err == nil && info.IsDir() {
-		return tuiDir, nil
+		if _, err := os.Stat(filepath.Join(tuiDir, "patches")); err == nil {
+			return tuiDir, nil
+		}
+		// Stale download — remove and re-download
+		os.RemoveAll(tuiDir)
 	}
 
 	tag := version
