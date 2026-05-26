@@ -8,13 +8,32 @@
   "scripts": {
     "postinstall": "node install.js"
   },
-  "repository": "github:sicario-labs/kode",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sicario-labs/kode.git"
+  },
   "homepage": "https://trykode.xyz",
   "bugs": "https://github.com/sicario-labs/kode/issues",
   "license": "MIT",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "preferUnplugged": true,
-  "os": ["win32", "darwin", "linux"],
-  "cpu": ["x64", "arm64"],
-  "keywords": ["ai", "coding", "agent", "cli", "code-generation", "go"]
+  "os": [
+    "win32",
+    "darwin",
+    "linux"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "keywords": [
+    "ai",
+    "coding",
+    "agent",
+    "cli",
+    "code-generation",
+    "go"
+  ]
 }
