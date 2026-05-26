@@ -488,13 +488,11 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
             })
 
             batch(() => {
-              if (providers.providers.length > 0) {
-                setStore("provider", reconcile(providers.providers))
-                setStore("provider_default", reconcile(providers.default))
-              } else {
-                setStore("provider", [kodeProvider()])
-                setStore("provider_default", { kode: "deepseek-v4-flash" })
-              }
+              const merged = providers.providers.length > 0
+                ? providers.providers.filter((p: any) => p.id !== "kode").concat([kodeProvider()])
+                : [kodeProvider()]
+              setStore("provider", reconcile(merged))
+              setStore("provider_default", { ...providers.default, kode: "deepseek-v4-flash" })
               setStore("provider_next", reconcile(providerList))
               setStore("console_state", reconcile(consoleState))
               setStore("agent", reconcile(agents))
