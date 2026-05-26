@@ -74,6 +74,7 @@ jobs:
           mkdir -p dist/tui
           cp -r vendored/opencode/packages dist/tui/packages
           cp vendored/opencode/package.json vendored/opencode/bun.lock dist/tui/
+          cp -r vendored/opencode/patches dist/tui/patches
           cp vendored/opencode/tsconfig.json dist/tui/ 2>/dev/null || true
 
       - name: Compress TUI bundle

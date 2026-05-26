@@ -238,7 +238,7 @@ func proxyTUI(tuiDir string, passthroughArgs []string) error {
 		installCmd.Stdout = os.Stdout
 		installCmd.Stderr = os.Stderr
 		if err := installCmd.Run(); err != nil {
-			return fmt.Errorf("bun install failed: %w", err)
+			fmt.Fprintf(os.Stderr, "Warning: bun install failed. Run 'cd %s && bun install' to retry.\n", tuiDir)
 		}
 	}
 
