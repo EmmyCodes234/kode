@@ -12,6 +12,7 @@ import (
 func (s *Server) proxyToOpenModel(w http.ResponseWriter, r *http.Request, body []byte, model Model) {
 	key := s.litePool.Next()
 	if key == "" {
+		s.maybeAlertLowPool()
 		http.Error(w, `{"error":"no Lite pool keys available"}`, http.StatusBadGateway)
 		return
 	}
@@ -104,8 +105,15 @@ func (s *Server) proxyToOpenModel(w http.ResponseWriter, r *http.Request, body [
 		}
 		w.WriteHeader(upstreamResp.StatusCode)
 		w.Write(respBody)
+
+		if upstreamResp.StatusCode == http.StatusUnauthorized || upstreamResp.StatusCode == http.StatusForbidden {
+			s.litePool.ReportFailure(key)
+		} else if upstreamResp.StatusCode == http.StatusOK {
+			s.litePool.ReportSuccess(key)
+		}
 		return
 	}
+	s.litePool.ReportSuccess(key)
 
 	// Convert Anthropic response back to OpenAI chat completion format
 	switch model.Protocol {

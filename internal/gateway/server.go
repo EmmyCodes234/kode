@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -15,6 +16,18 @@ type UpstreamConfig struct {
 	AnthropicKey string
 	DeepSeekKey  string
 	GoogleKey    string
+	WebhookURL   string
+}
+
+type logEntry struct {
+	Timestamp string `json:"timestamp"`
+	Method    string `json:"method"`
+	Path      string `json:"path"`
+	Status    int    `json:"status"`
+	Duration  string `json:"duration_ms"`
+	IP        string `json:"ip"`
+	Model     string `json:"model,omitempty"`
+	Error     string `json:"error,omitempty"`
 }
 
 type Server struct {
@@ -24,6 +37,7 @@ type Server struct {
 	litePool    *KeyPool
 	rateLimiter *RateLimiter
 	mux         *http.ServeMux
+	monitor     *UsageMonitor
 }
 
 func NewServer(catalog Catalog, upstream UpstreamConfig) *Server {
@@ -34,23 +48,70 @@ func NewServer(catalog Catalog, upstream UpstreamConfig) *Server {
 		litePool:     NewKeyPool(KeysFromEnv("KODE_LITE_KEYS")),
 		rateLimiter:  NewRateLimiter(20, 24*time.Hour),
 		mux:          http.NewServeMux(),
+		monitor:      NewUsageMonitor(1000),
 	}
 
 	s.mux.HandleFunc("GET /api/models", s.handleModels)
 	s.mux.HandleFunc("POST /v1/chat/completions", s.handleChat)
 	s.mux.HandleFunc("GET /health", s.handleHealth)
 	s.mux.HandleFunc("POST /api/keys", s.handleAddKey)
+	s.mux.HandleFunc("GET /api/monitor/usage", s.handleUsage)
 
 	s.keyStore.SeedFromEnv()
+
+	if len(s.litePool.Keys()) > 0 {
+		startHealthCheck(s.litePool)
+	}
 
 	return s
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
 	ip := FormatIP(r.RemoteAddr)
 	ctx := context.WithValue(r.Context(), "remote_ip", ip)
 	r = r.WithContext(ctx)
-	s.mux.ServeHTTP(w, r)
+
+	lrw := &loggingResponseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+	s.mux.ServeHTTP(lrw, r)
+
+	// Structured JSON logging
+	entry := logEntry{
+		Timestamp: start.Format(time.RFC3339),
+		Method:    r.Method,
+		Path:      r.URL.Path,
+		Status:    lrw.statusCode,
+		Duration:  fmt.Sprintf("%.0f", float64(time.Since(start).Milliseconds())),
+		IP:        ip,
+	}
+	out, _ := json.Marshal(entry)
+	fmt.Fprintln(os.Stderr, string(out))
+}
+
+type loggingResponseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (lrw *loggingResponseWriter) WriteHeader(code int) {
+	lrw.statusCode = code
+	lrw.ResponseWriter.WriteHeader(code)
+}
+
+func (s *Server) maybeAlertLowPool() {
+	healthy := s.litePool.HealthyCount()
+	if healthy >= 2 || s.upstream.WebhookURL == "" {
+		return
+	}
+	go func() {
+		payload, _ := json.Marshal(map[string]any{
+			"event":   "pool_low",
+			"healthy": healthy,
+			"total":   s.litePool.TotalKeys(),
+			"time":    time.Now().Format(time.RFC3339),
+		})
+		http.Post(s.upstream.WebhookURL, "application/json", bytes.NewReader(payload))
+	}()
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -136,6 +197,18 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Find model to check tier
+	var model Model
+	for _, m := range s.catalog.Models {
+		if m.ID == req.Model {
+			model = m
+			break
+		}
+	}
+
+	tier, _ := ResolveTier(apiKey, s.keyStore)
+	s.monitor.Record(ip, req.Model, tier, 0, 0)
+
 	// Route to upstream provider
 	upstreamURL, upstreamKey, err := s.resolveUpstream(req.Model)
 	if err != nil {
@@ -143,15 +216,6 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadGateway)
 		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
-	}
-
-	// Find model to check if Lite tier (needs protocol transform)
-	var model Model
-	for _, m := range s.catalog.Models {
-		if m.ID == req.Model {
-			model = m
-			break
-		}
 	}
 
 	if model.Tier == TierLite {
@@ -216,6 +280,15 @@ func (s *Server) proxyChat(w http.ResponseWriter, r *http.Request, upstreamURL, 
 		return
 	}
 	defer resp.Body.Close()
+
+	// Track pool key health for Lite-tier keys
+	if upstreamURL == "https://api.openmodel.ai/v1/messages" {
+		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+			s.litePool.ReportFailure(upstreamKey)
+		} else if resp.StatusCode == http.StatusOK {
+			s.litePool.ReportSuccess(upstreamKey)
+		}
+	}
 
 	for k, vs := range resp.Header {
 		for _, v := range vs {
