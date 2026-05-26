@@ -36,7 +36,7 @@ import { errorMessage } from "@/util/error"
 import { PluginCommand } from "../cmd/plug"
 import { Heap } from "../heap"
 import { drizzle } from "drizzle-orm/bun-sqlite"
-import { ensureProcessMetadata } from "@kode/core/util/opencode-process"
+import { ensureProcessMetadata } from "@kode/core/util/kode-process"
 import { isRecord } from "@/util/record"
 import { EOL } from "os"
 

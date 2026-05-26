@@ -19,7 +19,7 @@ import {
   KODE_RUN_ID,
   ensureRunID,
   sanitizedProcessEnv,
-} from "@kode/core/util/opencode-process"
+} from "@kode/core/util/kode-process"
 import { validateSession } from "./validate-session"
 
 declare global {

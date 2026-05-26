@@ -446,7 +446,7 @@ export const ProvidersLoginCommand = effectCmd({
       }
 
       yield* Prompt.log.warn(
-        `This only stores a credential for ${provider} - you will need configure it in kode.json, check the docs for examples.`,
+        `This only stores a credential for ${provider} - configure it in kode.json, check the docs for examples.`,
       )
     }
 

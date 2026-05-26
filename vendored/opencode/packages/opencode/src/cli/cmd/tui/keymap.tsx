@@ -15,7 +15,7 @@ export const LEADER_TOKEN = "leader"
 export const OPENCODE_BASE_MODE = "base"
 export const COMMAND_PALETTE_COMMAND = "command.palette.show"
 
-const OPENCODE_MODE_KEY = "opencode.mode"
+const OPENCODE_MODE_KEY = "kode.mode"
 
 export const KodeKeymapProvider = KeymapProvider
 export const useOpencodeKeymap = useKeymap

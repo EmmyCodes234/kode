@@ -10,7 +10,7 @@ import { ChildProcessSpawner } from "effect/unstable/process/ChildProcessSpawner
 import { CrossSpawnSpawner } from "@kode/core/cross-spawn-spawner"
 import { Global } from "@kode/core/global"
 import * as Log from "@kode/core/util/log"
-import { sanitizedProcessEnv } from "@kode/core/util/opencode-process"
+import { sanitizedProcessEnv } from "@kode/core/util/kode-process"
 import { which } from "@/util/which"
 import { NonNegativeInt } from "@kode/core/schema"
 

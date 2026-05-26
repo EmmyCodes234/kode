@@ -131,7 +131,7 @@ func kodeTuiAssetURL(tag string) string {
 	if runtime.GOOS == "windows" {
 		asset += ".exe"
 	}
-	return fmt.Sprintf("https://github.com/anomalyco/opencode/releases/download/v%s/%s", v, asset)
+	return fmt.Sprintf("https://github.com/sicario-labs/kode/releases/download/v%s/%s", version, asset)
 }
 
 func versionFileMatches(path string) bool {
