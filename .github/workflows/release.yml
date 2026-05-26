@@ -58,40 +58,7 @@ jobs:
           name: kode-${{ matrix.goos }}-${{ matrix.goarch }}
           path: dist/kode-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}
 
-  bundle-tui:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: oven-sh/setup-bun@v2
-
-      - name: Install TUI dependencies
-        working-directory: vendored/opencode
-        run: bun install --frozen-lockfile
-
-      - name: Bundle TUI assets
-        run: |
-          mkdir -p dist/tui
-          cp -r vendored/opencode/packages dist/tui/packages
-          cp vendored/opencode/package.json vendored/opencode/bun.lock dist/tui/
-          cp -r vendored/opencode/patches dist/tui/patches
-          cp vendored/opencode/tsconfig.json dist/tui/ 2>/dev/null || true
-          echo "${GITHUB_REF_NAME#v}" > dist/tui/.kode-version
-
-      - name: Compress TUI bundle
-        run: |
-          cd dist
-          tar czf tui-bundle.tar.gz tui/
-          sha256sum tui-bundle.tar.gz > tui-bundle.tar.gz.sha256
-
-      - name: Upload TUI bundle
-        uses: actions/upload-artifact@v4
-        with:
-          name: tui-bundle
-          path: dist/tui-bundle.tar.gz*
-
   compile-tui:
-    needs: [bundle-tui]
     strategy:
       matrix:
         include:
@@ -132,7 +99,7 @@ jobs:
           path: dist/kode-tui-${{ matrix.tui_os }}-${{ matrix.tui_arch }}${{ matrix.ext }}
 
   release:
-    needs: [build, bundle-tui, compile-tui]
+    needs: [build, compile-tui]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -153,8 +120,6 @@ jobs:
           for dir in dist/kode-tui-*/; do
             [ -d "$dir" ] && cp "$dir"/* release-assets/ 2>/dev/null || true
           done
-          # Copy TUI source bundle
-          cp dist/tui-bundle/tui-bundle.tar.gz* release-assets/ 2>/dev/null || true
           # Copy install scripts
           cp script/install.sh release-assets/ 2>/dev/null || true
           cp script/install.ps1 release-assets/ 2>/dev/null || true

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"archive/tar"
-	"compress/gzip"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,256 +13,136 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const tuiDirName = "tui"
-const tuiBundleFile = "tui-bundle.tar.gz"
-
 func init() {
 	tuiCmd := &cobra.Command{
 		Use:   "tui [-- args...]",
 		Short: "Launch the Kode terminal UI",
 		Long: `Launch the interactive Kode terminal user interface.
 
-This runs the TypeScript TUI from the vendored monorepo.
-Additional arguments after -- are passed through to the TUI.
-
-On first run, the TUI bundle is automatically downloaded from GitHub Releases.`,
+On first run, the opencode compiled binary is downloaded from GitHub.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runTUI(args)
+			return launchTUI(args)
 		},
 	}
 	rootCmd.AddCommand(tuiCmd)
 }
 
-func runTUI(args []string) error {
-	tuiDir, err := resolveTUIDir()
-	if err != nil {
-		return err
-	}
-	return proxyTUI(tuiDir, args)
-}
-
-func resolveTUIDir() (string, error) {
-	// Try to find an existing TUI directory
-	dir, err := findTUIDir()
-	if err == nil {
-		return dir, nil
-	}
-
-	// Auto-download on first launch
-	dir, err = ensureTUI()
-	if err != nil {
-		return "", fmt.Errorf("TUI not available: %w\nRun in CLI mode instead: kode <command>", err)
-	}
-	return dir, nil
-}
-
-func findTUIDir() (string, error) {
-	// Allow override via env var
-	if env := os.Getenv("KODE_TUI_DIR"); env != "" {
-		if info, err := os.Stat(env); err == nil && info.IsDir() {
-			return env, nil
-		}
-	}
-
-	selfPath, err := os.Executable()
-	searchDirs := []string{}
-
-	if err == nil {
-		selfDir := filepath.Dir(selfPath)
-		searchDirs = append(searchDirs,
-			filepath.Join(selfDir, "..", "vendor", "opencode"),
-			filepath.Join(selfDir, "..", "..", "vendor", "opencode"),
-		)
-	}
-
-	cwd, _ := os.Getwd()
-	if cwd != "" {
-		searchDirs = append(searchDirs, filepath.Join(cwd, "vendored", "opencode"))
-	}
-
-	// Check ~/.kode/tui/ (downloaded bundle)
-	homeDir, _ := os.UserHomeDir()
-	if homeDir != "" {
-		searchDirs = append(searchDirs, filepath.Join(homeDir, ".kode", tuiDirName))
-	}
-
-	bundleDir := ""
-	if homeDir != "" {
-		bundleDir = filepath.Join(homeDir, ".kode", tuiDirName)
-	}
-
-	for _, dir := range searchDirs {
-		abs, err := filepath.Abs(dir)
+func launchTUI(args []string) error {
+	proxy := findOpencodeBinary()
+	if proxy == "" {
+		var err error
+		proxy, err = downloadOpencodeBinary()
 		if err != nil {
-			continue
+			return fmt.Errorf("TUI not available: %w\nInstall with: npm install -g opencode-ai", err)
 		}
-		if info, statErr := os.Stat(abs); statErr == nil && info.IsDir() {
-			// For downloaded bundles (~/.kode/tui/), verify version matches
-			if bundleDir != "" && abs == bundleDir {
-				match, _ := versionMatches(abs)
-				if !match {
-					continue
+	}
+
+	selfPath, _ := os.Executable()
+	tuiCmd := exec.Command(proxy, args...)
+	tuiCmd.Stdin = os.Stdin
+	tuiCmd.Stdout = os.Stdout
+	tuiCmd.Stderr = os.Stderr
+	tuiCmd.Env = append(os.Environ(), fmt.Sprintf("KODE_BIN=%s", selfPath))
+
+	if err := tuiCmd.Run(); err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			os.Exit(exitErr.ExitCode())
+		}
+		return fmt.Errorf("TUI exited: %w", err)
+	}
+	return nil
+}
+
+func findOpencodeBinary() string {
+	// Priority 1: Our compiled Kode binary in ~/.kode/tui/bin/
+	if home, err := os.UserHomeDir(); err == nil {
+		bin := filepath.Join(home, ".kode", "tui", "bin", kodeTuiBinName())
+		if info, err := os.Stat(bin); err == nil && !info.IsDir() {
+			if versionFileMatches(filepath.Join(home, ".kode", "tui", ".kode-tui-version")) {
+				return bin
+			}
+			os.Remove(bin)
+		}
+		// Priority 2: npm global install (upstream opencode, Kode-branded fallback)
+		if home := os.Getenv("APPDATA"); home != "" {
+			bin := filepath.Join(home, "npm", "node_modules", "opencode-ai", "bin", "opencode.exe")
+			if info, err := os.Stat(bin); err == nil && !info.IsDir() {
+				return bin
+			}
+		}
+		// Unix npm
+		if home, err := os.UserHomeDir(); err == nil {
+			for _, p := range []string{
+				filepath.Join(home, ".npm", "packages", "opencode-ai", "bin", "opencode"),
+				filepath.Join(home, ".local", "share", "npm", "opencode-ai", "bin", "opencode"),
+			} {
+				if info, err := os.Stat(p); err == nil && !info.IsDir() {
+					return p
 				}
 			}
-			return abs, nil
 		}
 	}
-
-	return "", fmt.Errorf("TUI directory not found")
+	return ""
 }
 
-func ensureTUI() (string, error) {
+func kodeTuiBinName() string {
+	if runtime.GOOS == "windows" {
+		return "kode-tui.exe"
+	}
+	return "kode-tui"
+}
+
+func downloadOpencodeBinary() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("cannot determine home directory: %w", err)
 	}
-
-	kodeDir := filepath.Join(homeDir, ".kode")
-	tuiDir := filepath.Join(kodeDir, tuiDirName)
-
-	// Already exists? Verify version matches
-	if info, err := os.Stat(tuiDir); err == nil && info.IsDir() {
-		match, _ := versionMatches(tuiDir)
-		if match {
-			return tuiDir, nil
-		}
-		// Stale version — remove and re-download
-		os.RemoveAll(tuiDir)
-	}
+	tuiDir := filepath.Join(homeDir, ".kode", "tui")
+	binDir := filepath.Join(tuiDir, "bin")
+	os.MkdirAll(binDir, 0755)
 
 	tag := version
 	if tag == "" || tag == "dev" || tag == "none" {
 		tag = "latest"
 	}
 
-	var url string
-	if tag == "latest" {
-		url = fmt.Sprintf("https://github.com/sicario-labs/kode/releases/latest/download/%s", tuiBundleFile)
-	} else {
-		v := strings.TrimPrefix(tag, "v")
-		url = fmt.Sprintf("https://github.com/sicario-labs/kode/releases/download/v%s/%s", v, tuiBundleFile)
+	url := kodeTuiAssetURL(tag)
+	binPath := filepath.Join(binDir, kodeTuiBinName())
+
+	fmt.Fprintf(os.Stderr, "Downloading Kode TUI binary from GitHub...\n")
+	tmpPath := binPath + ".download"
+	if err := downloadBinary(url, tmpPath); err != nil {
+		return "", fmt.Errorf("download Kode TUI binary: %w", err)
 	}
+	os.Chmod(tmpPath, 0755)
+	os.Rename(tmpPath, binPath)
+	os.WriteFile(filepath.Join(tuiDir, ".kode-tui-version"), []byte(version), 0644)
 
-	// Allow override via env var
-	if env := os.Getenv("KODE_TUI_BUNDLE_URL"); env != "" {
-		url = env
-	}
-
-	fmt.Fprintf(os.Stderr, "Downloading TUI bundle (~52 MB) from GitHub Releases...\n")
-
-	if err := os.MkdirAll(kodeDir, 0755); err != nil {
-		return "", fmt.Errorf("create kode dir: %w", err)
-	}
-
-	if err := downloadAndExtract(url, kodeDir); err != nil {
-		os.RemoveAll(tuiDir)
-		return "", fmt.Errorf("download TUI: %w", err)
-	}
-
-	// Download platform-specific compiled binary if available
-	if binaryURL := tuiBinaryURL(tag); binaryURL != "" {
-		fmt.Fprintf(os.Stderr, "Downloading TUI compiled binary...\n")
-		binDir := filepath.Join(tuiDir, "bin")
-		os.MkdirAll(binDir, 0755)
-		binName := "kode-tui"
-		if runtime.GOOS == "windows" {
-			binName = "kode-tui.exe"
-		}
-		binPath := filepath.Join(binDir, binName)
-		if err := downloadBinary(binaryURL, binPath); err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: could not download compiled binary: %v\n", err)
-		} else {
-			os.Chmod(binPath, 0755)
-			fmt.Fprintf(os.Stderr, "Compiled binary saved to %s\n", binPath)
-		}
-	}
-
-	fmt.Fprintf(os.Stderr, "TUI bundle extracted to %s\n", tuiDir)
-	return tuiDir, nil
+	return binPath, nil
 }
 
-func downloadAndExtract(url, destDir string) error {
-	resp, err := http.Get(url)
-	if err != nil {
-		return fmt.Errorf("HTTP GET: %w", err)
+func kodeTuiAssetURL(tag string) string {
+	v := "1.15.10"
+	arch := runtime.GOARCH
+	if arch == "amd64" {
+		arch = "x64"
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("HTTP %d", resp.StatusCode)
+	asset := fmt.Sprintf("kode-tui-%s-%s", runtime.GOOS, arch)
+	if runtime.GOOS == "windows" {
+		asset += ".exe"
 	}
-
-	gzr, err := gzip.NewReader(resp.Body)
-	if err != nil {
-		return fmt.Errorf("gzip: %w", err)
-	}
-	defer gzr.Close()
-
-	tr := tar.NewReader(gzr)
-
-	for {
-		header, err := tr.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return fmt.Errorf("tar: %w", err)
-		}
-
-		// Strip the top-level directory (e.g. "tui/")
-		parts := strings.SplitN(header.Name, "/", 2)
-		if len(parts) < 2 || parts[0] != tuiDirName {
-			continue
-		}
-		rel := parts[1]
-		if rel == "" {
-			continue
-		}
-
-		target := filepath.Join(destDir, tuiDirName, rel)
-
-		switch header.Typeflag {
-		case tar.TypeDir:
-			if err := os.MkdirAll(target, os.FileMode(header.Mode)); err != nil {
-				return fmt.Errorf("mkdir %s: %w", target, err)
-			}
-		case tar.TypeReg:
-			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
-				return fmt.Errorf("mkdir %s: %w", target, err)
-			}
-			f, err := os.OpenFile(target, os.O_CREATE|os.O_WRONLY, os.FileMode(header.Mode))
-			if err != nil {
-				return fmt.Errorf("create %s: %w", target, err)
-			}
-			if _, err := io.Copy(f, tr); err != nil {
-				f.Close()
-				return fmt.Errorf("write %s: %w", target, err)
-			}
-			f.Close()
-		}
-	}
-
-	return nil
+	return fmt.Sprintf("https://github.com/anomalyco/opencode/releases/download/v%s/%s", v, asset)
 }
 
-func tuiBinaryURL(tag string) string {
-	arch := "x64"
-	if runtime.GOARCH == "arm64" {
-		arch = "arm64"
+func versionFileMatches(path string) bool {
+	if version == "" || version == "dev" || version == "none" {
+		return true
 	}
-	goos := runtime.GOOS
-
-	ext := ""
-	if goos == "windows" {
-		ext = ".exe"
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return false
 	}
-
-	filename := fmt.Sprintf("kode-tui-%s-%s%s", goos, arch, ext)
-	if tag == "" || tag == "dev" || tag == "none" || tag == "latest" {
-		return fmt.Sprintf("https://github.com/sicario-labs/kode/releases/latest/download/%s", filename)
-	}
-	v := strings.TrimPrefix(tag, "v")
-	return fmt.Sprintf("https://github.com/sicario-labs/kode/releases/download/v%s/%s", v, filename)
+	return strings.TrimSpace(string(data)) == version
 }
 
 func downloadBinary(url, dest string) error {
@@ -286,99 +164,4 @@ func downloadBinary(url, dest string) error {
 
 	_, err = io.Copy(out, resp.Body)
 	return err
-}
-
-func proxyTUI(tuiDir string, passthroughArgs []string) error {
-	selfPath, _ := os.Executable()
-
-	// Try compiled TUI binary first (instant, no bun needed)
-	if binary := findTUIBinary(tuiDir); binary != "" {
-		return runTUIBinary(binary, passthroughArgs, selfPath)
-	}
-
-	// Fall back to bun run with source files
-	bunPath, err := exec.LookPath("bun")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "TUI requires bun (JavaScript runtime).\n")
-		if confirmInstall("Install bun?", "npm install -g bun") {
-			installCmd := exec.Command("npm", "install", "-g", "bun")
-			installCmd.Stdout = os.Stdout
-			installCmd.Stderr = os.Stderr
-			if err := installCmd.Run(); err != nil {
-				return fmt.Errorf("failed to install bun: %w", err)
-			}
-			bunPath = "bun"
-		} else {
-			return fmt.Errorf("bun not found in PATH")
-		}
-	}
-
-	nmDir := filepath.Join(tuiDir, "node_modules")
-	if _, err := os.Stat(nmDir); os.IsNotExist(err) {
-		fmt.Fprintf(os.Stderr, "Installing TUI dependencies (bun install)...\n")
-		installCmd := exec.Command(bunPath, "install")
-		installCmd.Dir = tuiDir
-		installCmd.Stdout = os.Stdout
-		installCmd.Stderr = os.Stderr
-		if err := installCmd.Run(); err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: bun install failed. Run 'cd %s && bun install' to retry.\n", tuiDir)
-		}
-	}
-
-	entry := "src/index.ts"
-	pkgDir := filepath.Join(tuiDir, "packages", "opencode")
-	bunArgs := append([]string{"run", "--conditions=browser", entry}, passthroughArgs...)
-
-	tsCmd := exec.Command(bunPath, bunArgs...)
-	tsCmd.Dir = pkgDir
-	tsCmd.Stdin = os.Stdin
-	tsCmd.Stdout = os.Stdout
-	tsCmd.Stderr = os.Stderr
-	tsCmd.Env = append(os.Environ(), fmt.Sprintf("KODE_BIN=%s", selfPath))
-
-	if err := tsCmd.Run(); err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			os.Exit(exitErr.ExitCode())
-		}
-		return fmt.Errorf("TUI exited: %w", err)
-	}
-	return nil
-}
-
-func versionMatches(tuiDir string) (bool, error) {
-	if version == "" || version == "dev" || version == "none" {
-		return true, nil
-	}
-	data, err := os.ReadFile(filepath.Join(tuiDir, ".kode-version"))
-	if err != nil {
-		return false, err
-	}
-	return strings.TrimSpace(string(data)) == version, nil
-}
-
-func findTUIBinary(tuiDir string) string {
-	binName := "kode-tui"
-	if runtime.GOOS == "windows" {
-		binName = "kode-tui.exe"
-	}
-	candidate := filepath.Join(tuiDir, "bin", binName)
-	if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
-		return candidate
-	}
-	return ""
-}
-
-func runTUIBinary(binary string, args []string, selfPath string) error {
-	cmd := exec.Command(binary, args...)
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Env = append(os.Environ(), fmt.Sprintf("KODE_BIN=%s", selfPath))
-	if err := cmd.Run(); err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			os.Exit(exitErr.ExitCode())
-		}
-		return fmt.Errorf("TUI exited: %w", err)
-	}
-	return nil
 }

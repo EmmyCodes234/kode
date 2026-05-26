@@ -1,5 +1,4 @@
-const { execFile, spawnSync } = require("child_process");
-const { existsSync, chmodSync, mkdirSync, createWriteStream, readFileSync, rmSync } = require("fs");
+const { existsSync, chmodSync, mkdirSync, createWriteStream, readFileSync, writeFileSync } = require("fs");
 const { join } = require("path");
 const os = require("os");
 const https = require("https");
@@ -56,41 +55,23 @@ async function main() {
     }
   }
 
-  // Step 2: Download and extract TUI bundle to ~/.kode/tui/
-  const versionFile = join(tuiDir, ".kode-version");
+  // Step 2: Download compiled TUI binary to ~/.kode/tui/bin/
+  const versionFile = join(tuiDir, ".kode-tui-version");
   let installedVersion = "";
   try { installedVersion = readFileSync(versionFile, "utf8").trim(); } catch {}
   if (installedVersion !== version) {
-    // Remove stale node_modules so bun install re-runs
-    const nm = join(tuiDir, "node_modules");
-    if (existsSync(nm)) {
-      try { rmSync(nm, { recursive: true, force: true }); } catch {}
-    }
-    const bundleName = "tui-bundle.tar.gz";
-    console.log(`Downloading TUI bundle (~52 MB)...`);
-    const bundlePath = join(os.tmpdir(), bundleName);
+    const binDir = join(tuiDir, "bin");
+    mkdirSync(binDir, { recursive: true });
+    const tuiBinaryName = `kode-tui-${plat.os}-${process.arch === "x64" ? "x64" : "arm64"}${plat.ext}`;
+    const tuiPath = join(binDir, `kode-tui${plat.ext}`);
+    console.log(`Downloading Kode TUI binary (${tuiBinaryName})...`);
     try {
-      await download(versionedURL(bundleName), bundlePath);
-      mkdirSync(tuiDir, { recursive: true });
-      await extractTar(bundlePath, join(tuiDir, ".."));
-      console.log(`TUI extracted to ${tuiDir}`);
+      await download(versionedURL(tuiBinaryName), tuiPath);
+      try { chmodSync(tuiPath, 0o755); } catch {}
+      writeFileSync(versionFile, version, "utf8");
+      console.log(`TUI binary installed to ${tuiPath}`);
     } catch (err) {
-      console.error(`TUI download/extract failed: ${err.message}`);
-    } finally {
-      try { require("fs").unlinkSync(bundlePath); } catch {}
-    }
-  }
-
-  // Step 3: Pre-install TUI dependencies with bun
-  if (existsSync(join(tuiDir, "package.json")) && !existsSync(join(tuiDir, "node_modules"))) {
-    const bun = findBun();
-    if (bun) {
-      console.log(`Installing TUI dependencies (bun install)...`);
-      try {
-        await runCommand(bun, ["install"], tuiDir);
-      } catch (err) {
-        console.error(`bun install failed: ${err.message}`);
-      }
+      console.error(`TUI binary download failed: ${err.message}`);
     }
   }
 }
@@ -118,36 +99,4 @@ function download(url, dest) {
   });
 }
 
-function extractTar(src, dest) {
-  return new Promise((resolve, reject) => {
-    // Use system tar command (available on Windows 10 17063+, macOS, Linux)
-    execFile("tar", ["-xzf", src, "-C", dest], (err) => {
-      err ? reject(err) : resolve();
-    });
-  });
-}
 
-function findBun() {
-  const paths = ["bun", "bun.exe"];
-  for (const p of paths) {
-    const result = spawnSync(p, ["--version"], { stdio: "ignore" });
-    if (result.status === 0) return p;
-  }
-  // Check common install locations
-  const extra = [
-    join(os.homedir(), ".bun", "bin", "bun" + (process.platform === "win32" ? ".exe" : "")),
-    join(process.env.LOCALAPPDATA || "", "bun", "bin", "bun.exe"),
-  ];
-  for (const p of extra) {
-    if (existsSync(p)) return p;
-  }
-  return null;
-}
-
-function runCommand(cmd, args, cwd) {
-  return new Promise((resolve, reject) => {
-    const child = require("child_process").spawn(cmd, args, { cwd, stdio: "inherit" });
-    child.on("close", (code) => code === 0 ? resolve() : reject(new Error(`exit code ${code}`)));
-    child.on("error", reject);
-  });
-}

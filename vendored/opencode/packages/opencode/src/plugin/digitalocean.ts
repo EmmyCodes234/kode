@@ -365,7 +365,7 @@ export async function DigitalOceanAuthPlugin(input: PluginInput): Promise<Hooks>
             return {
               url: buildAuthorizeUrl(state),
               instructions:
-                "Sign in to DigitalOcean in your browser. OpenCode will create a Model Access Key named kode-oauth-* and load your Inference Routers. Re-run /connect to refresh routers later.",
+                "Sign in to DigitalOcean in your browser. Kode will create a Model Access Key named kode-oauth-* and load your Inference Routers. Re-run /connect to refresh routers later.",
               method: "auto" as const,
               async callback() {
                 try {

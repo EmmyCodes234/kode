@@ -1,5 +1,6 @@
 import { TuiThreadCommand } from "./cli/cmd/tui/thread"
 import { UI } from "./cli/ui"
+import { InstallationVersion } from "@kode/core/installation/version"
 import { EOL } from "os"
 
 function show(out: string) {
@@ -16,6 +17,8 @@ const cli = (await import("yargs")).default(process.argv.slice(2))
   .scriptName("kode")
   .wrap(100)
   .command(TuiThreadCommand)
+  .version("version", "show version number", InstallationVersion)
+  .alias("version", "v")
   .help("help", "show help")
   .alias("help", "h")
   .completion("completion", "generate shell completion script")
