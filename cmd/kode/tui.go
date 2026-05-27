@@ -13,6 +13,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const tuiLogFile = "kode-tui.log"
+
 func init() {
 	tuiCmd := &cobra.Command{
 		Use:   "tui [-- args...]",
@@ -41,7 +43,17 @@ func launchTUI(args []string) error {
 	tuiCmd := exec.Command(proxy, args...)
 	tuiCmd.Stdin = os.Stdin
 	tuiCmd.Stdout = os.Stdout
-	tuiCmd.Stderr = os.Stderr
+
+	// Redirect TUI stderr to a log file so INFO debug lines don't fight with
+	// the terminal screen buffer.
+	tuiLog, err := openTuiLog()
+	if err == nil {
+		defer tuiLog.Close()
+		tuiCmd.Stderr = tuiLog
+	} else {
+		tuiCmd.Stderr = os.Stderr
+	}
+
 	tuiCmd.Env = append(os.Environ(), fmt.Sprintf("KODE_BIN=%s", selfPath))
 
 	if err := tuiCmd.Run(); err != nil {
@@ -51,6 +63,16 @@ func launchTUI(args []string) error {
 		return fmt.Errorf("TUI exited: %w", err)
 	}
 	return nil
+}
+
+func openTuiLog() (*os.File, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, err
+	}
+	logDir := filepath.Join(home, ".kode", "tui")
+	os.MkdirAll(logDir, 0755)
+	return os.OpenFile(filepath.Join(logDir, tuiLogFile), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 }
 
 func findOpencodeBinary() string {
@@ -122,7 +144,6 @@ func downloadOpencodeBinary() (string, error) {
 }
 
 func kodeTuiAssetURL(tag string) string {
-	v := "1.15.10"
 	arch := runtime.GOARCH
 	if arch == "amd64" {
 		arch = "x64"
