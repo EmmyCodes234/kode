@@ -47,7 +47,7 @@ Kode is a Bring Your Own Key (BYOK) platform. You provide the API key, we provid
 
 ```bash
 # Install globally via NPM
-npm install -g kode
+npm install -g @sicario-labs/kode
 ```
 
 ## Quick Start

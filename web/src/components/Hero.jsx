@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 const snippets = {
   curl: 'curl -fsSL https://trykode.xyz/install | bash',
   go: 'go install github.com/sicario-labs/kode/cmd/kode@latest',
-  npm: 'npm install -g kode',
+  npm: 'npm install -g @sicario-labs/kode',
 }
 
 const AnimatedTuiMockup = () => {
