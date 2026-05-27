@@ -1,33 +1,33 @@
 export default function PricingCards() {
   const cards = [
     {
-      name: 'Free',
+      name: 'Open Source',
       price: '$0',
-      sub: 'Get started instantly with no API key needed.',
-      features: ['3 free models included', '100 requests/day', 'Full gatekeeper engine', 'Community support'],
-      cta: 'Get Started',
+      sub: 'Bring your own key (BYOK). 100% local execution.',
+      features: ['5 deterministic verification gates', 'Support for OpenAI, Anthropic, Gemini', 'Full AST modification engine', 'Local context graph builder'],
+      cta: 'Install Now',
       href: '#install',
       primary: false,
       popular: false,
     },
     {
-      name: 'Go',
-      price: '$5',
-      sub: 'first month / then $10/mo',
-      desc: 'Curated open models for daily coding.',
-      features: ['10+ open models', '5hr/week usage limit', 'DeepSeek, Qwen, GLM, Kimi', 'Priority support'],
-      cta: 'Subscribe \u2192',
-      href: '/go',
+      name: 'Kode Pro',
+      price: '$15',
+      sub: 'per user / month. Build autonomously.',
+      desc: 'Advanced agentic loop tools for power users.',
+      features: ['Daemon Mode (background watcher)', 'Ghost Branches (parallel speculation)', 'MCP IDE Server integration', 'Priority email support'],
+      cta: 'Get Early Access \u2192',
+      href: '#',
       primary: true,
       popular: true,
     },
     {
-      name: 'Zen',
-      price: 'Pay as you go',
-      sub: 'Premium models billed per token. Top up as needed.',
-      features: ['GPT-4o, Claude, Gemini', '30+ premium models', 'Per-token billing', 'Auto-reload & alerts'],
-      cta: 'Get API Key',
-      href: '/zen',
+      name: 'Enterprise',
+      price: 'Custom',
+      sub: 'For massive codebases and secure teams.',
+      features: ['Custom Gatekeeper policies', 'Self-hosted LLM integration', 'SSO / SAML authentication', 'VPC airgapped deployment'],
+      cta: 'Contact Sales',
+      href: '#',
       primary: false,
       popular: false,
     },
@@ -40,7 +40,7 @@ export default function PricingCards() {
           <div className="pricing-card-header">
             {card.popular ? (
               <div className="pricing-card-tier">
-                {card.name} <span style={{ color: 'var(--accent-neon)', fontWeight: 700 }}>Most popular</span>
+                {card.name} <span style={{ color: 'var(--accent-neon)', fontWeight: 700 }}>Recommended</span>
               </div>
             ) : (
               <div className="pricing-card-tier">{card.name}</div>

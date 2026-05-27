@@ -3,12 +3,12 @@ import { useState } from 'react'
 const faqs = [
   { q: 'What is Kode?', a: 'Kode is an open source AI coding agent with a compiled Go verification engine. Every generated patch must pass 5 deterministic gates (syntax, imports, calls, blast radius, architecture) before touching your filesystem.' },
   { q: 'How do I use Kode?', a: 'Install the binary, run kode init in your project, then kode loop "your task". The engine handles context gathering, LLM prompting, patch generation, verification, application, and testing in one cycle.' },
-  { q: 'Do I need extra AI subscriptions?', a: 'Kode includes free models or you can connect any OpenAI-compatible provider. Claude, GPT, Gemini, local models — whatever you prefer.' },
-  { q: 'Can I use my existing subscriptions?', a: 'Yes. Configure your API key and provider in .kode/kode.json. If you have a ChatGPT Plus, Pro, or GitHub Copilot subscription, you can use those as well.' },
-  { q: 'Can I only use Kode in the terminal?', a: 'Kode works in your terminal, IDE, or as a desktop app. kode tui launches the full interactive TUI. IDE extensions are in development.' },
-  { q: 'How much does Kode cost?', a: 'Kode itself is free and open source. You pay only for the LLM tokens you use. With Context Budgeting, you set hard cost caps per cycle — no surprise bills.' },
-  { q: 'What about data and privacy?', a: 'Kode does not store your code or context. Blindfold Mode ensures identifiers are obfuscated before reaching any LLM provider. Everything runs locally on your machine.' },
-  { q: 'Is Kode open source?', a: 'Yes. The full source is at github.com/sicario-labs/kode. Go engine, TypeScript TUI, CI/CD — everything is open.' },
+  { q: 'Do I need extra AI subscriptions?', a: 'Kode is a Bring Your Own Key (BYOK) platform. You must provide an API key for an OpenAI-compatible provider. We natively support Claude, GPT-4, Gemini, and local LLMs via Ollama/LMStudio.' },
+  { q: 'Can I use my ChatGPT Plus or GitHub Copilot subscription?', a: 'No. Kode requires raw API access (e.g., Anthropic Console, OpenAI Platform) to function. Consumer subscriptions do not provide the raw API keys necessary for agentic execution.' },
+  { q: 'Can I only use Kode in the terminal?', a: 'Kode works flawlessly in the terminal via kode tui. However, using the kode mcp serve command, you can also integrate Kode directly into IDEs like Cursor, Antigravity, and Claude Desktop.' },
+  { q: 'How much does Kode cost?', a: 'The core Kode engine is 100% free and open source. You pay only the direct API costs to your LLM provider. Kode Pro offers advanced features like Daemon Mode and Ghost Branches for $15/mo.' },
+  { q: 'What about data and privacy?', a: 'Kode operates entirely on your local machine. We do not proxy, store, or view your code. Your repository context is sent directly from your localhost to your chosen LLM API provider.' },
+  { q: 'Is Kode open source?', a: 'Yes. The full source is at github.com/sicario-labs/kode. The Go Gatekeeper engine, TypeScript TUI, and MCP implementations are entirely open.' },
 ]
 
 export default function FAQ() {
