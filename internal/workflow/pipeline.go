@@ -12,8 +12,11 @@ import (
 	"time"
 
 	kodecontext "github.com/kode/kode/internal/context"
+	"github.com/kode/kode/internal/critique"
+	"github.com/kode/kode/internal/critique/lenses"
 	"github.com/kode/kode/internal/execution"
 	"github.com/kode/kode/internal/llm"
+	"github.com/kode/kode/internal/memory"
 	"github.com/kode/kode/internal/router"
 )
 
@@ -174,6 +177,52 @@ func (p *Pipeline) Run(ctx context.Context, task string) (*Result, error) {
 		return nil, fmt.Errorf("snapshot failed: %w", err)
 	}
 
+	// Stage: Critique — evaluate LLM patch intent against critique lenses
+	state.CurrentStage = StageCritique
+	if fn, ok := p.beforeStage[StageCritique]; ok {
+		fn(state)
+	}
+
+	patchFiles := make(map[string]string)
+	for _, h := range hunks {
+		if h.NewText != "" {
+			patchFiles[h.FilePath] += h.NewText + "\n"
+		}
+	}
+
+	critEngine := lenses.DefaultEngine()
+	ctxCrit := critique.CritiqueContext{
+		ProjectRoot:       absDir,
+		TotalFilesChanged: len(affectedFiles),
+	}
+	findings := critEngine.CritiqueAll(patchFiles, ctxCrit)
+
+	if len(findings) > 0 {
+		var msgs []string
+		hasError := false
+		for _, fileFindings := range findings {
+			for _, f := range fileFindings {
+				msgs = append(msgs, fmt.Sprintf("[%s] %s: %s", f.Severity, f.Lens, f.Message))
+				if f.Severity == critique.SevError {
+					hasError = true
+				}
+			}
+		}
+
+		if hasError {
+			err := fmt.Errorf("critique rejected patch: %s", strings.Join(msgs, "; "))
+			state.Errors = append(state.Errors, err.Error())
+			if fn, ok := p.afterStage[StageCritique]; ok {
+				fn(state, err)
+			}
+			return nil, err
+		}
+	}
+
+	if fn, ok := p.afterStage[StageCritique]; ok {
+		fn(state, nil)
+	}
+
 	// Stage: Verify — execute transaction with self-correction
 	state.CurrentStage = StageVerify
 	if fn, ok := p.beforeStage[StageVerify]; ok {
@@ -207,6 +256,25 @@ func (p *Pipeline) Run(ctx context.Context, task string) (*Result, error) {
 		RepairFunc: repairFunc,
 	})
 	state.Summary = summary
+
+	// Memory: Record blast radius and any verification failures
+	if mem, memErr := memory.Open(absDir); memErr == nil {
+		defer mem.Close()
+		_ = mem.RecordBlastRadius(state.TaskID, len(affectedFiles))
+
+		if summary != nil && len(summary.FailedHunks) > 0 {
+			// Map hunk ID back to file path
+			hunkFiles := make(map[string]string)
+			for _, h := range hunks {
+				hunkFiles[h.ID] = h.FilePath
+			}
+			for hunkID, errMsg := range summary.FailedHunks {
+				filePath := hunkFiles[hunkID]
+				_ = mem.RecordVerificationFailure(state.TaskID, errMsg, filePath)
+			}
+		}
+	}
+
 	if err != nil {
 		state.Errors = append(state.Errors, err.Error())
 		if fn, ok := p.afterStage[StageVerify]; ok {

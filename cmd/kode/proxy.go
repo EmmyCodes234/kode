@@ -37,9 +37,9 @@ func isTSCommand(name string) bool {
 func init() {
 	tsCmd := &cobra.Command{
 		Use:   "ts [command] [args...]",
-		Short: "Run an opencode-compatible command from the TS CLI",
-		Long: `Forward a command to the TypeScript CLI (vendored opencode).
-Use this to access any opencode feature not exposed directly by Kode's Go CLI.
+		Short: "Run a command from the Kode TS CLI",
+		Long: `Forward a command to the TypeScript CLI.
+Use this to access any Kode feature not exposed directly by the Go CLI.
 Examples:
   kode ts models
   kode ts providers list
@@ -52,7 +52,7 @@ Examples:
 }
 
 func proxyCLI(args []string) error {
-	return proxyEntry("./packages/opencode/src/cli/cmd/index.ts", args)
+	return proxyEntry("./packages/kode/src/cli/cmd/index.ts", args)
 }
 
 func confirmInstall(label, command string) bool {

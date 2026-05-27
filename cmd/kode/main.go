@@ -20,11 +20,11 @@ var rootCmd = &cobra.Command{
 	Long: `Kode is an AI coding agent that prioritizes verification over generation,
 architectural integrity over raw output, and deterministic gates over probabilistic guesses.
 
-Built as a functional architecture hijack of opencode, Kode replaces the
-"generate-and-pray" paradigm with a structured Plan -> Critique -> Generate -> Verify -> Apply -> Test workflow.
+Kode replaces the "generate-and-pray" paradigm with a structured
+Plan -> Critique -> Generate -> Verify -> Apply -> Test workflow.
 
-Unknown commands are forwarded to the vendored opencode TypeScript CLI, giving you
-access to all opencode features (models, providers, sessions, agents, etc.).`,
+Unknown commands are forwarded to the Kode TypeScript CLI, giving you
+access to all Kode features (models, providers, sessions, agents, etc.).`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := launchTUI(args); err != nil {
 			cmd.Help()

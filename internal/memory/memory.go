@@ -1,147 +1,132 @@
 package memory
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 )
 
-type RecordType string
-
-const (
-	TypeVerification RecordType = "verification"
-	TypeGeneration   RecordType = "generation"
-	TypeError        RecordType = "error"
-	TypeContext      RecordType = "context"
-)
-
-type Record struct {
-	ID        string            `json:"id"`
-	TaskID    string            `json:"task_id"`
-	Timestamp time.Time         `json:"timestamp"`
-	Type      RecordType        `json:"type"`
-	Key       string            `json:"key"`
-	Value     string            `json:"value"`
-	Metadata  map[string]string `json:"metadata,omitempty"`
+type VerificationFailure struct {
+	Timestamp    time.Time `json:"timestamp"`
+	TaskID       string    `json:"task_id"`
+	ErrorMessage string    `json:"error_message"`
+	FilePath     string    `json:"file_path"`
 }
 
-type Store struct {
-	mu      sync.RWMutex
-	records []Record
-	nextID  int
+type BlastRadius struct {
+	Timestamp    time.Time `json:"timestamp"`
+	TaskID       string    `json:"task_id"`
+	FilesChanged int       `json:"files_changed"`
 }
 
-func NewStore() *Store {
-	return &Store{
-		records: make([]Record, 0),
-		nextID:  1,
-	}
+type GhostStrategy struct {
+	Timestamp time.Time `json:"timestamp"`
+	TaskID    string    `json:"task_id"`
+	Strategy  string    `json:"strategy"`
+	Score     float64   `json:"score"`
+	IsWinner  bool      `json:"is_winner"`
 }
 
-func (s *Store) Store(r Record) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if r.ID == "" {
-		r.ID = fmt.Sprintf("%d", s.nextID)
-		s.nextID++
-	}
-	if r.Timestamp.IsZero() {
-		r.Timestamp = time.Now()
-	}
-	if r.Metadata == nil {
-		r.Metadata = make(map[string]string)
-	}
-	s.records = append(s.records, r)
+type Database struct {
+	Failures   []VerificationFailure `json:"verification_failures"`
+	Radii      []BlastRadius         `json:"blast_radii"`
+	Strategies []GhostStrategy       `json:"ghost_strategies"`
 }
 
-func (s *Store) GetByTask(taskID string) []Record {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	var result []Record
-	for _, r := range s.records {
-		if r.TaskID == taskID {
-			result = append(result, r)
-		}
-	}
-	return result
+type Memory struct {
+	dbPath string
+	mu     sync.Mutex
+	data   Database
 }
 
-func (s *Store) GetByType(typ RecordType) []Record {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	var result []Record
-	for _, r := range s.records {
-		if r.Type == typ {
-			result = append(result, r)
-		}
+// Open creates or connects to the JSON memory database for the project.
+func Open(projectRoot string) (*Memory, error) {
+	dbDir := filepath.Join(projectRoot, ".kode")
+	if err := os.MkdirAll(dbDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create .kode dir: %w", err)
 	}
-	return result
+
+	dbPath := filepath.Join(dbDir, "memory.json")
+	m := &Memory{
+		dbPath: dbPath,
+		data: Database{
+			Failures:   make([]VerificationFailure, 0),
+			Radii:      make([]BlastRadius, 0),
+			Strategies: make([]GhostStrategy, 0),
+		},
+	}
+
+	if err := m.load(); err != nil && !os.IsNotExist(err) {
+		return nil, fmt.Errorf("failed to load memory db: %w", err)
+	}
+
+	return m, nil
 }
 
-func (s *Store) GetByKey(key string) []Record {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	var result []Record
-	for _, r := range s.records {
-		if r.Key == key {
-			result = append(result, r)
-		}
-	}
-	return result
+func (m *Memory) Close() error {
+	return m.save()
 }
 
-func (s *Store) GetRecent(n int) []Record {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+func (m *Memory) load() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
-	if n <= 0 || len(s.records) == 0 {
-		return nil
+	b, err := os.ReadFile(m.dbPath)
+	if err != nil {
+		return err
 	}
-	start := len(s.records) - n
-	if start < 0 {
-		start = 0
-	}
-	out := make([]Record, len(s.records)-start)
-	copy(out, s.records[start:])
-	return out
+	return json.Unmarshal(b, &m.data)
 }
 
-func (s *Store) Clear() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func (m *Memory) save() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
-	s.records = make([]Record, 0)
-	s.nextID = 1
+	b, err := json.MarshalIndent(m.data, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(m.dbPath, b, 0644)
 }
 
-func (s *Store) GetFailedHunks(taskID string) map[string]string {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	result := make(map[string]string)
-	// Iterate in reverse to find the most recent verification failure
-	for i := len(s.records) - 1; i >= 0; i-- {
-		r := s.records[i]
-		if r.TaskID == taskID && r.Type == TypeVerification && r.Key != "" {
-			result[r.Key] = r.Value
-		}
-	}
-	return result
+// RecordVerificationFailure logs a failure so the agent can learn patterns to avoid.
+func (m *Memory) RecordVerificationFailure(taskID, errorMessage, filePath string) error {
+	m.mu.Lock()
+	m.data.Failures = append(m.data.Failures, VerificationFailure{
+		Timestamp:    time.Now(),
+		TaskID:       taskID,
+		ErrorMessage: errorMessage,
+		FilePath:     filePath,
+	})
+	m.mu.Unlock()
+	return m.save()
 }
 
-func (s *Store) GetPreviousAttempts(taskID string) int {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+// RecordBlastRadius logs the number of files changed for trend analysis.
+func (m *Memory) RecordBlastRadius(taskID string, filesChanged int) error {
+	m.mu.Lock()
+	m.data.Radii = append(m.data.Radii, BlastRadius{
+		Timestamp:    time.Now(),
+		TaskID:       taskID,
+		FilesChanged: filesChanged,
+	})
+	m.mu.Unlock()
+	return m.save()
+}
 
-	count := 0
-	for _, r := range s.records {
-		if r.TaskID == taskID && r.Type == TypeGeneration {
-			count++
-		}
-	}
-	return count
+// RecordGhostStrategy logs successful and failed strategies to optimize future speculative branching.
+func (m *Memory) RecordGhostStrategy(taskID, strategy string, score float64, isWinner bool) error {
+	m.mu.Lock()
+	m.data.Strategies = append(m.data.Strategies, GhostStrategy{
+		Timestamp: time.Now(),
+		TaskID:    taskID,
+		Strategy:  strategy,
+		Score:     score,
+		IsWinner:  isWinner,
+	})
+	m.mu.Unlock()
+	return m.save()
 }

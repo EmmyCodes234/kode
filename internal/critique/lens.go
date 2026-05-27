@@ -23,6 +23,7 @@ type CritiqueContext struct {
 	ProjectRoot        string
 	ArchitectureRules  []verify.ArchRule
 	FileDependencies   map[string][]string
+	TotalFilesChanged  int
 }
 
 type Lens interface {

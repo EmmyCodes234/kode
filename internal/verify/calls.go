@@ -28,9 +28,20 @@ type extractedCall struct {
 func (c *CallChecker) CheckFile(path string, content string, allowedPackages map[string]bool, graphEntries map[string]bool) CheckResult {
 	res := CheckResult{CheckName: "calls", Status: StatusPass}
 
-	if !strings.HasSuffix(path, ".go") {
+	lang := DetectLanguage(path)
+
+	switch lang {
+	case LangGo:
+		return c.checkGo(path, content, allowedPackages, graphEntries)
+	case LangTypeScript, LangJavaScript, LangPython, LangRust:
+		return c.checkMultiLang(path, content)
+	default:
 		return res
 	}
+}
+
+func (c *CallChecker) checkGo(path string, content string, allowedPackages map[string]bool, graphEntries map[string]bool) CheckResult {
+	res := CheckResult{CheckName: "calls", Status: StatusPass}
 
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, path, content, 0)
@@ -238,4 +249,26 @@ func exprString(expr ast.Expr) string {
 	default:
 		return fmt.Sprintf("%T", t)
 	}
+}
+
+func (c *CallChecker) checkMultiLang(path string, content string) CheckResult {
+	res := CheckResult{CheckName: "calls", Status: StatusPass}
+
+	parsed := ParseFile(path, content)
+	var issues []string
+
+	for _, call := range parsed.Calls {
+		// Just a stub for now. For dynamic languages, call validation
+		// requires type inference. We will rely on syntax and import checks
+		// as our primary gates.
+		_ = call
+	}
+
+	if len(issues) > 0 {
+		res.Status = StatusWarn
+		res.Message = "Call validation warning"
+		res.Details = strings.Join(issues, "\n")
+	}
+
+	return res
 }

@@ -15,27 +15,59 @@ import (
 
 const tuiLogFile = "kode-tui.log"
 
+var (
+	tuiPort     int
+	tuiHostname string
+	tuiMdns     bool
+)
+
 func init() {
 	tuiCmd := &cobra.Command{
 		Use:   "tui [-- args...]",
 		Short: "Launch the Kode terminal UI",
 		Long: `Launch the interactive Kode terminal user interface.
 
-On first run, the opencode compiled binary is downloaded from GitHub.`,
+On first run, the Kode TUI compiled binary is downloaded from GitHub.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Collect TUI-specific flags from the Go CLI and pass them through.
+			if tuiPort != 0 {
+				args = append(args, "--port", fmt.Sprintf("%d", tuiPort))
+			}
+			if tuiHostname != "" {
+				args = append(args, "--hostname", tuiHostname)
+			}
+			if tuiMdns {
+				args = append(args, "--mdns")
+			}
 			return launchTUI(args)
 		},
 	}
+	tuiCmd.Flags().IntVar(&tuiPort, "port", 0, "HTTP server port")
+	tuiCmd.Flags().StringVar(&tuiHostname, "hostname", "", "HTTP server hostname")
+	tuiCmd.Flags().BoolVar(&tuiMdns, "mdns", false, "Advertise via mDNS")
 	rootCmd.AddCommand(tuiCmd)
 }
 
 func launchTUI(args []string) error {
+	// Dev mode: run TUI from local TypeScript source via bun.
+	// The TUI is the default command ($0 [project]), so no subcommand needed.
+	// Pass the actual cwd as the project argument since proxyEntry sets Dir to
+	// the TUI directory.
+	if version == "dev" || version == "" {
+		cwd, _ := os.Getwd()
+		allArgs := args
+		if cwd != "" && (len(allArgs) == 0 || allArgs[0] == "") {
+			allArgs = append([]string{cwd}, allArgs...)
+		}
+		return proxyEntry("./packages/kode/src/index.ts", allArgs)
+	}
+
 	proxy := findOpencodeBinary()
 	if proxy == "" {
 		var err error
 		proxy, err = downloadOpencodeBinary()
 		if err != nil {
-			return fmt.Errorf("TUI not available: %w\nInstall with: npm install -g opencode-ai", err)
+			return fmt.Errorf("TUI not available: %w\nInstall with: kode tui (auto-downloads)", err)
 		}
 	}
 

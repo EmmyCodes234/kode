@@ -9,13 +9,13 @@ const snippets = {
 const AnimatedTuiMockup = () => {
   const [phase, setPhase] = useState('initial');
   const [typedText, setTypedText] = useState('');
-  const [outputStep, setOutputStep] = useState(0);
-  const fullText = "optimize the database query";
+  const [gateStep, setGateStep] = useState(0);
+  const fullText = "refactor the auth middleware";
 
   useEffect(() => {
     let timer;
     if (phase === 'initial') {
-      setOutputStep(0);
+      setGateStep(0);
       timer = setTimeout(() => setPhase('moving'), 800);
     } else if (phase === 'moving') {
       timer = setTimeout(() => setPhase('typing'), 1000);
@@ -26,20 +26,20 @@ const AnimatedTuiMockup = () => {
         i++;
         if (i === fullText.length) {
           clearInterval(interval);
-          setTimeout(() => setPhase('processing'), 800);
+          setTimeout(() => setPhase('verifying'), 800);
         }
-      }, 50);
+      }, 45);
       return () => clearInterval(interval);
-    } else if (phase === 'processing') {
+    } else if (phase === 'verifying') {
       let step = 0;
       const interval = setInterval(() => {
         step++;
-        setOutputStep(step);
-        if (step >= 4) {
+        setGateStep(step);
+        if (step >= 7) {
           clearInterval(interval);
-          setTimeout(() => setPhase('done'), 4000);
+          setTimeout(() => setPhase('done'), 5000);
         }
-      }, 800);
+      }, 600);
       return () => clearInterval(interval);
     } else if (phase === 'done') {
       setPhase('initial');
@@ -63,11 +63,20 @@ const AnimatedTuiMockup = () => {
   const zoomStyle = {
     transition: 'transform 1.2s cubic-bezier(0.25, 1, 0.5, 1)',
     transform: (phase === 'moving' || phase === 'typing') ? 'scale(1.04)' : 'scale(1)',
-    transformOrigin: '20% 20%', // Zooms in slightly towards the top-left input box
+    transformOrigin: '20% 20%',
     position: 'relative',
     height: '100%',
     width: '100%'
   };
+
+  const gates = [
+    { name: 'Syntax',        detail: 'Go AST parsed cleanly' },
+    { name: 'Imports',       detail: 'all imports resolvable' },
+    { name: 'Calls',         detail: 'no hallucinated functions' },
+    { name: 'Blast Radius',  detail: '2 files modified (limit: 10)' },
+    { name: 'Architecture',  detail: 'no boundary violations' },
+    { name: 'Security',      detail: 'no vulnerabilities injected' },
+  ];
 
   return (
     <div className="tui-mockup" style={{ position: 'relative', minHeight: 480, overflow: 'hidden' }}>
@@ -90,12 +99,12 @@ const AnimatedTuiMockup = () => {
                   <>
                     {typedText}<span style={{ animation: 'blink 1s step-end infinite', backgroundColor: '#fff', display: 'inline-block', width: 8, height: 15, verticalAlign: 'middle', marginLeft: 4 }} />
                   </>
-                ) : 'Ask anything... "Draft a RFC for the proposal"'}
+                ) : 'Ask anything... "Refactor the auth middleware"'}
               </div>
               <div className="tui-meta-row">
                 <span className="tui-action-tag">Build</span>
                 <span className="tui-dot-separator">&middot;</span>
-                <span className="tui-model-tag">Deepseek 4 Flash</span>
+                <span className="tui-model-tag">Claude Sonnet 4</span>
               </div>
             </div>
             <div className="tui-hints-row">
@@ -107,53 +116,59 @@ const AnimatedTuiMockup = () => {
             <div className="tui-tip-row">
               <span className="tui-tip-tag">&bull; Tip</span>
               <span className="tui-tip-text">
-                Run <strong>/init</strong> to auto-generate project rules based on your codebase
+                Every file write passes through 6 verification gates before it touches your filesystem
               </span>
             </div>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%', animation: 'fadeIn 0.2s', textAlign: 'left', fontFamily: 'var(--font-mono)', fontSize: 13, color: '#e5e7eb' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 16, marginBottom: 16 }}>
-               <span style={{ fontWeight: 700, color: '#fff' }}># Optimize database query in repo workflow</span>
-               <span style={{ color: '#8e8c9f' }}>12,400 15% ($0.04)</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: 12, marginBottom: 12 }}>
+               <span style={{ fontWeight: 700, color: '#fff' }}># Refactor auth middleware</span>
+               <span style={{ color: '#8e8c9f' }}>8,200 tokens ($0.02)</span>
             </div>
             
-            <div style={{ marginBottom: 16, color: '#e5e7eb' }}>I'll search for the slow query in the database models.</div>
+            <div style={{ marginBottom: 12, color: '#e5e7eb' }}>Generated 3 hunks for <span style={{ color: '#a78bfa' }}>internal/auth/middleware.go</span></div>
             
-            {outputStep >= 1 && (
-              <div style={{ color: '#8e8c9f', marginBottom: 16, animation: 'fadeInUp 0.3s forwards' }}>
-                * Grep "SELECT.*FROM users"<br/>
-                * Grep "User.query"
-              </div>
-            )}
-            
-            {outputStep >= 2 && (
-              <div style={{ marginBottom: 16, color: '#e5e7eb', animation: 'fadeInUp 0.3s forwards' }}>Let me check the schema and indices for the users table:</div>
-            )}
-            
-            {outputStep >= 3 && (
-              <div style={{ color: '#8e8c9f', marginBottom: 16, animation: 'fadeInUp 0.3s forwards' }}>
-                * Read internal/db/schema.sql<br/>
-                * Run psql -c "\d users"
-              </div>
-            )}
-            
-            {outputStep >= 4 && (
-              <>
-                <div style={{ marginBottom: 16, color: '#e5e7eb', animation: 'fadeInUp 0.3s forwards' }}>I found the missing index. Let me apply the fix and verify:</div>
-                <div style={{ color: '#60a5fa', marginBottom: 16, animation: 'fadeInUp 0.3s forwards' }}>
-                  → [Syntax] Passed<br/>
-                  → [Blast Radius] Passed (1 file modified)<br/>
-                  → [Architecture] Passed
+            <div style={{ marginBottom: 8, color: '#8e8c9f', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              ▸ Verification Gates
+            </div>
+
+            {gates.map((gate, i) => (
+              gateStep >= (i + 1) && (
+                <div key={gate.name} style={{ 
+                  marginBottom: 4, 
+                  animation: 'fadeInUp 0.3s forwards',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8
+                }}>
+                  <span style={{ color: '#4ade80', fontWeight: 700 }}>✓</span>
+                  <span style={{ color: '#e5e7eb', minWidth: 120 }}>[{gate.name}]</span>
+                  <span style={{ color: '#8e8c9f' }}>{gate.detail}</span>
                 </div>
-              </>
+              )
+            ))}
+
+            {gateStep >= 7 && (
+              <div style={{ 
+                marginTop: 12, 
+                padding: '8px 12px', 
+                background: 'rgba(74, 222, 128, 0.08)', 
+                border: '1px solid rgba(74, 222, 128, 0.2)', 
+                borderRadius: 4,
+                animation: 'fadeInUp 0.4s forwards',
+                color: '#4ade80',
+                fontWeight: 600
+              }}>
+                Applied 3 hunks to internal/auth/middleware.go [✓ verified]
+              </div>
             )}
 
             <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#13111c', padding: '12px 16px', borderRadius: 4, border: '1px solid rgba(255,255,255,0.03)' }}>
                <div>
-                 <span style={{ color: '#60a5fa', marginRight: 12, fontWeight: 700 }}>Build</span>
-                 <span style={{ color: '#fff' }}>Deepseek 4 Flash</span>
-                 <span style={{ color: '#8e8c9f', marginLeft: 8 }}>Kode Pro</span>
+                 <span style={{ color: '#4ade80', marginRight: 12, fontWeight: 700 }}>Build</span>
+                 <span style={{ color: '#fff' }}>Claude Sonnet 4</span>
+                 <span style={{ color: '#8e8c9f', marginLeft: 8 }}>6/6 gates passed</span>
                </div>
             </div>
           </div>
@@ -184,12 +199,12 @@ export default function Hero() {
       <div className="wrapper">
         <div className="hero-grid">
           <div className="hero-left">
-            <span className="hero-badge">[+] Desktop beta available on macOS, Windows, Linux</span>
+            <span className="hero-badge">[+] Pre-launch &mdash; install the binary, bring your key, start shipping verified code</span>
             <h1 className="display-xl" style={{ marginBottom: 16 }}>
-              The safe AI<br />coding agent
+              The AI coding agent<br />that verifies before<br />it writes
             </h1>
             <p className="body-md hero-sub">
-              Connect any model from any provider, including Claude, GPT, Gemini, local models, and more.
+              Every other agent trusts the LLM and prays. Kode runs 6 deterministic verification gates &mdash; syntax, imports, calls, blast radius, architecture, security &mdash; before any generated code touches your filesystem.
             </p>
 
             <div className="install-container">

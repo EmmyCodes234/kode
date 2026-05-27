@@ -239,7 +239,7 @@ The semantic palette is unusual for a brand-marketing site: it ships the full Ap
 
 ## Colors
 
-> **Source pages:** `/` (home), `/zen`, `/enterprise`. The chrome palette is identical across all three.
+> **Source pages:** `/` (home), `/enterprise`. The chrome palette is identical across both.
 
 ### Brand & Accent
 - **Ink** (`{colors.primary}` / `{colors.ink}` — `#201d1d`): the brand's only "color." Headlines, body text, primary CTA fill, nav links, and every solid icon. Treats nearly-black as the brand color rather than pure black to keep type readable on the warm cream canvas.
@@ -313,7 +313,7 @@ When substituting, line-height behavior is preserved by keeping `lineHeight: 1.5
 ### Spacing System
 - **Base unit:** 8px (with finer 1/2/4px steps available for tight inline gaps).
 - **Tokens (front matter):** `{spacing.xxs}` (1px) · `{spacing.xs}` (4px) · `{spacing.sm}` (8px) · `{spacing.md}` (12px) · `{spacing.lg}` (16px) · `{spacing.xl}` (24px) · `{spacing.xxl}` (32px) · `{spacing.section}` (96px).
-- **Universal section rhythm:** every page in the set uses `{spacing.section}` (96px) as the vertical gap between major content blocks. This is the largest spacing token in the system and is the dominant layout cue across the home, `/zen`, and `/enterprise` pages.
+- **Universal section rhythm:** every page in the set uses `{spacing.section}` (96px) as the vertical gap between major content blocks. This is the largest spacing token in the system and is the dominant layout cue across the home and `/enterprise` pages.
 - **Section internal padding:** content rows inside a section sit at `{spacing.lg}` (16px) vertical with no horizontal padding — text starts flush at the section's left edge.
 
 ### Grid & Container
@@ -357,7 +357,7 @@ The radius vocabulary is two values: 4px for interactive elements and 0px for ev
 There is no photography. Visual elements are limited to:
 - **ASCII block-pixel wordmark** in the nav and hero TUI mockup.
 - **Inline ASCII charts** inside the stat-block section — abstract sparse-line and dotted plots without specific data points.
-- **Avatar dots** (~32px) inside testimonial rows on `/zen` — flat colored circles in `{rounded.full}`.
+- **Avatar dots** (~32px) inside testimonial rows — flat colored circles in `{rounded.full}`.
 - **In-product icons** (kbd, A+, ⊕, ↻, K, Z) rendered as small monospaced character glyphs, not bitmaps or SVG.
 
 ## Components
@@ -368,7 +368,7 @@ There is no photography. Visual elements are limited to:
 
 **`button-primary`** — the universal OpenCode CTA
 - Background `{colors.primary}`, text `{colors.on-primary}`, type `{typography.button-md}`, padding `4px 20px`, height ~36px, rounded `{rounded.sm}` (4px).
-- Used for "Download" (top nav), "Get started with Zen", "Send" (enterprise contact form), "Subscribe" (newsletter footer), "Read docs →".
+- Used for "Download" (top nav), "Get started", "Send" (enterprise contact form), "Subscribe" (newsletter footer), "Read docs →".
 - Pressed state lives in `button-primary-active` — background drops to `{colors.ink-deep}`.
 
 **`button-secondary`** — outlined alternative
@@ -416,7 +416,7 @@ There is no photography. Visual elements are limited to:
 
 **`tui-prompt-row`** — the inset command line inside the TUI mockup
 - Background `{colors.surface-dark-elevated}` (`#302c2c`), text `{colors.on-dark}` in `{typography.body-md}`, padding `8px 12px`, rounded `{rounded.sm}`.
-- Renders an inline command (`Build  Claude Opus 4.5  OpenCode Zen`) with a leading vertical pipe and the model name styled as a bracketed token.
+- Renders an inline command (`Build  Claude 3.5 Sonnet  Kode`) with a leading vertical pipe and the model name styled as a bracketed token.
 
 **`list-row`** — feature/benefit row with ASCII bracket bullet
 - Background `{colors.canvas}`, text `{colors.body}` in `{typography.body-md}`, padding `8px 0`.
@@ -426,7 +426,7 @@ There is no photography. Visual elements are limited to:
 - Background `{colors.canvas}`, text `{colors.ink}` in `{typography.body-md}`, padding `12px 0`, with a 1px `{colors.hairline}` bottom rule.
 - Each row leads with `+` / `−` ASCII markers indicating expand/collapse state. Always rendered as plain text rows — no chevron icons, no animated accordion chrome.
 
-**`testimonial-row`** — `/zen` peer-quote row
+**`testimonial-row`** — peer-quote row
 - Background `{colors.surface-soft}`, text `{colors.body}` in `{typography.body-md}`, padding `16px 20px`, rounded `{rounded.sm}`.
 - Layout: a 32px avatar circle (`{rounded.full}`) at left, name + role + company in `{typography.body-strong}` on the first line, quote in `{typography.body-md}` `{colors.body}` on the second line.
 
@@ -438,7 +438,7 @@ There is no photography. Visual elements are limited to:
 
 **`primary-nav`**
 - Background `{colors.canvas}`, text `{colors.ink}` in `{typography.body-strong}`, height ~56px, rounded `{rounded.none}`, with a 1px `{colors.hairline}` bottom rule.
-- Layout (desktop): block-pixel ASCII OpenCode wordmark at left (~120×24px), nav links cluster center-right ("GitHub [150K] · Docs · Zen · Go · Enterprise"), `{component.button-primary}` "Download" CTA at the far right with a small download glyph.
+- Layout (desktop): block-pixel ASCII Kode wordmark at left (~120×24px), nav links cluster center-right ("GitHub [150K] · Docs · Enterprise"), `{component.button-primary}` "Download" CTA at the far right with a small download glyph.
 
 **Top Nav (Mobile)**
 - ASCII wordmark stays at left, nav links collapse into a hamburger drawer at the right. The Download CTA remains visible at every breakpoint.
@@ -517,5 +517,4 @@ There are no raster images in the system aside from the favicon and OG share ima
 - **Mobile screenshots not captured** — responsive behavior synthesizes OpenCode's mobile pattern (hamburger drawer, single-column, footer accordion) from desktop evidence and the breakpoint stack.
 - **Hover states not documented** by system policy.
 - **In-product TUI screenshots** beyond the marketing hero mockup are not in the captured set; the actual `opencode` terminal interface (full keybindings, panels, status bar) is not documented here.
-- **`/go` page** not extracted — the marketing page for the Go SDK likely shares the same chrome but introduces code-sample blocks not documented above.
 - **Form validation state styling** (success / error inline messages) not present in the captured surfaces.

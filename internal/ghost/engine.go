@@ -9,6 +9,7 @@ import (
 
 	"github.com/kode/kode/internal/execution"
 	"github.com/kode/kode/internal/llm"
+	"github.com/kode/kode/internal/memory"
 	"github.com/kode/kode/internal/workflow"
 )
 
@@ -101,6 +102,15 @@ func (e *GhostEngine) Run(ctx context.Context, cfg GhostRunConfig) (*GhostSummar
 		Winner:    winner,
 		TotalTime: totalTime,
 		TotalCost: totalCost,
+	}
+
+	// Memory: Record ghost branch strategy performance
+	if mem, memErr := memory.Open(e.repoDir); memErr == nil {
+		defer mem.Close()
+		for _, r := range results {
+			isWinner := winner != nil && r.ID == winner.ID
+			_ = mem.RecordGhostStrategy(cfg.Task, string(r.Strategy), r.Score, isWinner)
+		}
 	}
 
 	return summary, nil

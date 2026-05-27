@@ -25,15 +25,16 @@ func findTUIDir() (string, error) {
 
 	if err == nil {
 		selfDir := filepath.Dir(selfPath)
+		// Look for TUI relative to the binary location (installed layout)
 		searchDirs = append(searchDirs,
-			filepath.Join(selfDir, "..", "vendor", "opencode"),
-			filepath.Join(selfDir, "..", "..", "vendor", "opencode"),
+			filepath.Join(selfDir, ".."),
 		)
 	}
 
 	cwd, _ := os.Getwd()
 	if cwd != "" {
-		searchDirs = append(searchDirs, filepath.Join(cwd, "vendored", "opencode"))
+		// Dev mode: TUI is at the repo root
+		searchDirs = append(searchDirs, cwd)
 	}
 
 	homeDir, _ := os.UserHomeDir()
