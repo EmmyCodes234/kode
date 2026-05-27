@@ -16,6 +16,16 @@ func DefaultConfig() Config {
 	endpoint := os.Getenv("KODE_LLM_ENDPOINT")
 	model := os.Getenv("KODE_LLM_MODEL")
 	legacyKey := os.Getenv("OPENAI_API_KEY")
+	proKey := os.Getenv("KODE_PRO_API_KEY")
+
+	// Pro key set, no explicit overrides → direct DeepSeek, bypass gateway
+	if proKey != "" && key == "" && endpoint == "" && model == "" && legacyKey == "" {
+		return Config{
+			APIKey:   proKey,
+			Endpoint: "https://api.deepseek.com/v1",
+			Model:    "deepseek-v4-flash",
+		}
+	}
 
 	// Zero-config mode: no explicit key, no endpoint, no legacy key → gateway
 	if key == "" && endpoint == "" && legacyKey == "" && model == "" {
