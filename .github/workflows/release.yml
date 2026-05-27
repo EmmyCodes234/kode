@@ -184,7 +184,7 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           npm version "$VERSION" --no-git-tag-version --allow-same-version
-        working-directory: packages/kode
+        working-directory: packages/npm
 
       - name: Verify npm version with provenance support
         run: npm --version
@@ -196,4 +196,4 @@ jobs:
             *-*) TAG="next" ;;
           esac
           npm publish --provenance --access public --tag "$TAG"
-        working-directory: packages/kode
+        working-directory: packages/npm
