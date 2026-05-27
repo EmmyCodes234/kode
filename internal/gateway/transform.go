@@ -109,6 +109,9 @@ func (s *Server) proxyToOpenModel(w http.ResponseWriter, r *http.Request, body [
 				delete(msg, "tools")
 			}
 		}
+		// Keep upstream request non-streaming (gateway reads full response,
+		// then returns it as SSE chunks if the client requested streaming).
+		delete(msg, "stream")
 		delete(msg, "temperature")
 		delete(msg, "top_p")
 		delete(msg, "stream_options")
