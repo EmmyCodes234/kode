@@ -80,10 +80,38 @@ func (s *Server) proxyToOpenModel(w http.ResponseWriter, r *http.Request, body [
 			}
 			msg["messages"] = filtered
 		}
+		// Convert tools from OpenAI format { type: "function", function: { name, description, parameters } }
+		// to Anthropic format { name, description, input_schema }.
+		if tools, ok := msg["tools"].([]any); ok {
+			anthTools := make([]any, 0, len(tools))
+			for _, t := range tools {
+				if tmap, ok := t.(map[string]any); ok {
+					if fn, ok := tmap["function"].(map[string]any); ok {
+						conv := make(map[string]any)
+						if name, _ := fn["name"].(string); name != "" {
+							conv["name"] = name
+						}
+						if desc, _ := fn["description"].(string); desc != "" {
+							conv["description"] = desc
+						}
+						if params, ok := fn["parameters"]; ok {
+							conv["input_schema"] = params
+						}
+						anthTools = append(anthTools, conv)
+					}
+				}
+			}
+			if len(anthTools) > 0 {
+				msg["tools"] = anthTools
+			} else {
+				delete(msg, "tools")
+			}
+		}
 		// Remove unsupported fields
 		delete(msg, "stream")
 		delete(msg, "temperature")
 		delete(msg, "top_p")
+		delete(msg, "stream_options")
 		var err error
 		upstreamBody, err = json.Marshal(msg)
 		if err != nil {
