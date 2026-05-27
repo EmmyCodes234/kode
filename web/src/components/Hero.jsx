@@ -56,59 +56,37 @@ export default function Hero() {
 
           <div className="hero-right">
             <div className="tui-mockup">
-              <div className="tui-titlebar">
-                <div className="tui-dots">
-                  <div className="tui-dot red"></div>
-                  <div className="tui-dot yellow"></div>
-                  <div className="tui-dot green"></div>
-                </div>
-                <div className="tui-title">kode tui - ~/projects/sicario</div>
+              {/* Logo Row */}
+              <div className="tui-logo-row">
+                <img src="/kode-logo.svg" alt="Kode" width="160" height="35" />
               </div>
-              <div className="tui-body">
-                <div className="tui-sidebar">
-                  <div className="section-title">[-] WORKSPACE</div>
-                  <div>├─ [+] cmd/kode/</div>
-                  <div>├─ [+] internal/</div>
-                  <div>├─ [x] go.mod</div>
-                  <div>└─ [x] README.md</div>
-                  <br />
-                  <div className="section-title">[+] SESSIONS</div>
-                  <div>├─ [✓] add-auth (2m ago)</div>
-                  <div>└─ [✓] init-git (1d ago)</div>
+              
+              {/* Input Box */}
+              <div className="tui-input-box">
+                <div className="tui-prompt-text">
+                  Ask anything... &quot;Draft a RFC for the proposal&quot;
                 </div>
-                <div className="tui-main">
-                  <div className="tui-output">
-                    <div className="tui-output-line" style={{ color: 'var(--mute)' }}>$ kode loop &quot;add user authentication&quot;</div>
-                    <br />
-                    <div className="tui-output-line" style={{ fontWeight: 700, color: 'var(--ink)' }}>PLANNING</div>
-                    <div className="tui-output-line success">[✓] Build surgical 8K context graph ..... [OK]</div>
-                    <div className="tui-output-line success">[✓] Validate request parameters ......... [OK]</div>
-                    <br />
-                    <div className="tui-output-line" style={{ fontWeight: 700, color: 'var(--ink)' }}>GENERATING</div>
-                    <div className="tui-output-line success">[✓] Generate patches via Claude 3.5 ..... [OK]</div>
-                    <br />
-                    <div className="tui-output-line" style={{ fontWeight: 700, color: 'var(--ink)' }}>VERIFYING (Go Gatekeeper)</div>
-                    <div className="tui-output-line success">├── Gate 1: Syntax compilation .......... [PASS]</div>
-                    <div className="tui-output-line success">├── Gate 2: Static linter check ......... [PASS]</div>
-                    <div className="tui-output-line success">├── Gate 3: Test runner execution ....... [PASS]</div>
-                    <div className="tui-output-line success">├── Gate 4: Blast radius control ........ [PASS]</div>
-                    <div className="tui-output-line success">└── Gate 5: TDD validation .............. [PASS]</div>
-                    <br />
-                    <div className="tui-output-line" style={{ fontWeight: 700, color: 'var(--ink)' }}>APPLY & TEST</div>
-                    <div className="tui-output-line success">[✓] Diffs successfully applied to disk</div>
-                    <div className="tui-output-line success">[✓] Tests passed. 0 failures.</div>
-                  </div>
-                  <div className="tui-composer">
-                    <div className="tui-composer-header">
-                      <span>[composer] Claude 3.5 Sonnet</span>
-                      <span>KODE_BIN active</span>
-                    </div>
-                    <div className="tui-composer-input">
-                      <span className="pipe">|</span>
-                      <span style={{ color: 'var(--on-dark)' }}>kode loop "add user authentication"</span>
-                    </div>
-                  </div>
+                <div className="tui-meta-row">
+                  <span className="tui-action-tag">Build</span>
+                  <span className="tui-dot-separator">&middot;</span>
+                  <span className="tui-model-tag">Llama 3.1 8B Cerebras</span>
                 </div>
+              </div>
+              
+              {/* Hints Row */}
+              <div className="tui-hints-row">
+                <span className="tui-hint-key">tab</span>
+                <span className="tui-hint-val">agents</span>
+                <span className="tui-hint-key" style={{ marginLeft: 12 }}>ctrl+p</span>
+                <span className="tui-hint-val">commands</span>
+              </div>
+              
+              {/* Tip Row */}
+              <div className="tui-tip-row">
+                <span className="tui-tip-tag">&bull; Tip</span>
+                <span className="tui-tip-text">
+                  Run <strong>/init</strong> to auto-generate project rules based on your codebase
+                </span>
               </div>
             </div>
           </div>
