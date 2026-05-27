@@ -98,7 +98,7 @@ jobs:
         run: |
           V="${KODE_VERSION#v}" && KODE_VERSION="$V" bun run script/build.ts --single --skip-embed-web-ui --skip-install 2>&1
           mkdir -p ../../../../dist
-          cp dist/*/bin/kode${{ matrix.ext }} ../../dist/kode-tui-${{ matrix.tui_os }}-${{ matrix.tui_arch }}${{ matrix.ext }}
+          cp dist/*/*/bin/kode${{ matrix.ext }} ../../dist/kode-tui-${{ matrix.tui_os }}-${{ matrix.tui_arch }}${{ matrix.ext }}
         shell: bash
 
       - name: Setup QEMU for arm64
@@ -118,7 +118,7 @@ jobs:
             -v ${{ github.workspace }}:/workspace \
             -w /workspace/packages/kode \
             oven/bun:latest \
-            sh -c "bun install --frozen-lockfile && bun run script/build.ts --single --skip-embed-web-ui --skip-install && cp dist/*/bin/kode /workspace/dist/kode-tui-linux-arm64"
+            sh -c "bun install --frozen-lockfile && bun run script/build.ts --single --skip-embed-web-ui --skip-install && cp dist/*/*/bin/kode /workspace/dist/kode-tui-linux-arm64"
         shell: bash
 
       - name: Upload TUI binary
