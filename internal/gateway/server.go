@@ -138,6 +138,12 @@ func (lrw *loggingResponseWriter) WriteHeader(code int) {
 	lrw.ResponseWriter.WriteHeader(code)
 }
 
+func (lrw *loggingResponseWriter) Flush() {
+	if flusher, ok := lrw.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
+}
+
 func (s *Server) maybeAlertLowPool() {
 	healthy := s.litePool.HealthyCount()
 	if healthy >= 2 || s.upstream.WebhookURL == "" {
