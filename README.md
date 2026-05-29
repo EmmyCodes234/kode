@@ -1,10 +1,10 @@
 <div align="center">
-  <img src="./web/public/kode-logo.svg" alt="Kode Logo" width="200" />
+  <img src="https://raw.githubusercontent.com/sicario-labs/kode/master/web/public/kode-logo.svg" alt="Kode Logo" width="200" />
   <h1>Kode</h1>
   <p><strong>The contrarian, verification-first AI coding agent. No generation without validation.</strong></p>
   <p>
-    <a href="https://github.com/sicario-labs/kode/actions"><img src="https://img.shields.io/github/actions/workflow/status/sicario-labs/kode/ci.yml?branch=master" alt="CI Status" /></a>
-    <a href="https://github.com/sicario-labs/kode/releases"><img src="https://img.shields.io/github/v/release/sicario-labs/kode" alt="Release" /></a>
+    <a href="https://github.com/sicario-labs/kode/actions/workflows/ci.yml"><img src="https://github.com/sicario-labs/kode/actions/workflows/ci.yml/badge.svg?branch=master" alt="CI Status" /></a>
+    <a href="https://github.com/sicario-labs/kode/releases"><img src="https://img.shields.io/github/v/release/sicario-labs/kode?color=blue&label=Release&cache=1" alt="Release" /></a>
     <a href="https://github.com/sicario-labs/kode/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" /></a>
   </p>
 </div>
