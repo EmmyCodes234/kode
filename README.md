@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/sicario-labs/kode/master/web/public/kode-logo.svg" alt="Kode Logo" width="200" />
+  ![Kode Logo](web/public/kode-logo.svg)
   <h1>Kode</h1>
   <p><strong>The contrarian, verification-first AI coding agent. No generation without validation.</strong></p>
   <p>
