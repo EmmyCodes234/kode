@@ -228,7 +228,7 @@
     },
     "packages/kode": {
       "name": "@sicario-labs/kode",
-      "version": "1.15.20",
+      "version": "1.15.21",
       "bin": {
         "kode": "./bin/kode",
       },
