@@ -34,6 +34,8 @@ type VerifyRequest struct {
 	BlockOnArchitecture bool
 	ArchitectureRules   []ArchRule
 	MaxBlastRadius      int
+	Browser             bool
+	BrowserInstructions string
 }
 
 type ArchRule struct {

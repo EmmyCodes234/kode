@@ -20,6 +20,7 @@ type Executor struct {
 	parser         *HunkParser
 	correction     *SelfCorrectionEngine
 	staticAnalysis *verify.StaticAnalysisChecker
+	browser        *verify.BrowserGate
 }
 
 func NewExecutor(projectRoot string) *Executor {
@@ -32,6 +33,7 @@ func NewExecutor(projectRoot string) *Executor {
 		parser:         NewHunkParser(),
 		correction:     NewSelfCorrectionEngine(),
 		staticAnalysis: verify.NewStaticAnalysisChecker(projectRoot),
+		browser:        verify.NewBrowserGate(projectRoot),
 	}
 }
 
@@ -196,6 +198,40 @@ func (e *Executor) ExecuteTransaction(ctx context.Context, taskID string, projec
 			summary.FailedHunks["static_analysis"] = analysisRes.Message + ": " + analysisRes.Details
 			return summary, fmt.Errorf("static analysis check failed (rolled back): %s (%s)", analysisRes.Message, analysisRes.Details)
 		}
+
+		// Run Tier 3: Browser Verification
+		engageBrowser := reqCtx.Browser
+		if !engageBrowser {
+			if cfg, err := verify.LoadProjectConfig(projectRoot); err == nil && cfg.Engine != nil && cfg.Engine.BrowserVerification {
+				engageBrowser = true
+			}
+		}
+		if !engageBrowser {
+			for _, file := range changedFiles {
+				ext := strings.ToLower(filepath.Ext(file))
+				if ext == ".html" || ext == ".tsx" || ext == ".jsx" || ext == ".ts" || ext == ".js" || ext == ".css" || ext == ".vue" {
+					engageBrowser = true
+					break
+				}
+			}
+		}
+
+		if engageBrowser && e.browser != nil {
+			fmt.Fprintf(os.Stderr, "KODE_GATE: browser_verification\n")
+			browserRes := e.browser.Verify(ctx, "", reqCtx.BrowserInstructions)
+			if browserRes.Status == verify.StatusFail {
+				// Roll back the disk writes to restore the original files
+				rollbackState := make(map[string]string)
+				for filePath, originalContent := range reqCtx.OriginalFiles {
+					rollbackState[filePath] = originalContent
+				}
+				_ = e.commitToDisk(projectRoot, allPassingHunks, nil, rollbackState)
+
+				summary.Status = StatusFail
+				summary.FailedHunks["browser_verification"] = browserRes.Message + ": " + browserRes.Details
+				return summary, fmt.Errorf("browser verification check failed (rolled back): %s (%s)", browserRes.Message, browserRes.Details)
+			}
+		}
 	}
 
 	return summary, nil
@@ -212,6 +248,8 @@ type ExecutionContext struct {
 	TDDMode             bool
 	TestCommand         string
 	RepairFunc          RepairFunc
+	Browser             bool
+	BrowserInstructions string
 }
 
 func (e *Executor) verifyHunk(hunk StructuredHunk, content string, ctx ExecutionContext) *verify.CheckResult {

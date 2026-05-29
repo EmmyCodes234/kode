@@ -201,7 +201,7 @@ export default function Hero() {
           <div className="hero-left">
             <span className="hero-badge">[+] Pre-launch &mdash; install the binary, bring your key, start shipping verified code</span>
             <h1 className="display-xl" style={{ marginBottom: 16 }}>
-              The AI coding agent<br />that verifies before<br />it writes
+              Stop generating.<br />Start verifying.
             </h1>
             <p className="body-md hero-sub">
               Every other agent trusts the LLM and prays. Kode runs 6 deterministic verification gates &mdash; syntax, imports, calls, blast radius, architecture, security &mdash; before any generated code touches your filesystem.

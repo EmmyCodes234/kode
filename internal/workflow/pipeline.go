@@ -12,6 +12,7 @@ import (
 	"time"
 
 	kodecontext "github.com/kode/kode/internal/context"
+	"github.com/kode/kode/internal/blindfold"
 	"github.com/kode/kode/internal/critique"
 	"github.com/kode/kode/internal/critique/lenses"
 	"github.com/kode/kode/internal/execution"
@@ -120,7 +121,21 @@ func (p *Pipeline) Run(ctx context.Context, task string) (*Result, error) {
 		return nil, err
 	}
 
-	userPrompt := llm.BuildGeneratePrompt(task, contextStr)
+	var ob *blindfold.Obfuscator
+	targetTask := task
+	targetContext := contextStr
+
+	if p.config.Blindfold {
+		salt := p.config.BlindfoldSalt
+		if salt == "" {
+			salt = "kode-salt"
+		}
+		ob = blindfold.NewObfuscator(salt)
+		targetTask = ob.Obfuscate(task)
+		targetContext = ob.Obfuscate(contextStr)
+	}
+
+	userPrompt := llm.BuildGeneratePrompt(targetTask, targetContext)
 	client := llm.NewClient(cfg)
 	resp, err := p.callLLM(ctx, client, llm.ChatRequest{
 		Model:       cfg.Model,
@@ -142,6 +157,10 @@ func (p *Pipeline) Run(ctx context.Context, task string) (*Result, error) {
 	}
 
 	content := resp.Choices[0].Message.Content
+	if p.config.Blindfold && ob != nil {
+		content = ob.Deobfuscate(content)
+	}
+
 	parser := execution.NewHunkParser()
 	hunks, err := parser.ParseLLMResponse(content)
 	if err != nil {
@@ -253,9 +272,34 @@ func (p *Pipeline) Run(ctx context.Context, task string) (*Result, error) {
 	}
 
 	summary, err := executor.ExecuteTransaction(ctx, task, absDir, hunks, execution.ExecutionContext{
-		RepairFunc: repairFunc,
+		RepairFunc:          repairFunc,
+		Browser:             p.config.Browser,
+		BrowserInstructions: p.config.BrowserInstructions,
 	})
 	state.Summary = summary
+
+	// Time-Travel Debugging: Record dynamic AST state snapshot
+	if summary != nil {
+		verdictStr := "PASS"
+		if err != nil || summary.Status != execution.StatusPass {
+			verdictStr = "FAIL"
+		}
+		
+		modifiedContent := make(map[string]string)
+		for _, hunk := range hunks {
+			if data, err := os.ReadFile(filepath.Join(absDir, hunk.FilePath)); err == nil {
+				modifiedContent[hunk.FilePath] = string(data)
+			}
+		}
+		
+		state.History = append(state.History, ASTSnapshot{
+			StepNumber:    len(state.History) + 1,
+			Timestamp:     time.Now(),
+			ModifiedFiles: modifiedContent,
+			Verdict:       verdictStr,
+			LogSummary:    fmt.Sprintf("Hunks: %d. Applied: %d. Failed: %d.", len(hunks), len(summary.AppliedHunks), len(summary.FailedHunks)),
+		})
+	}
 
 	// Memory: Record blast radius and any verification failures
 	if mem, memErr := memory.Open(absDir); memErr == nil {

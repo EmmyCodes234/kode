@@ -27,6 +27,14 @@ type BenchResult struct {
 	AllocsPO int     `json:"allocs_po"`
 }
 
+type ASTSnapshot struct {
+	StepNumber    int               `json:"step_number"`
+	Timestamp     time.Time         `json:"timestamp"`
+	ModifiedFiles map[string]string `json:"modified_files"`
+	Verdict       string            `json:"verdict"`
+	LogSummary    string            `json:"log_summary"`
+}
+
 type State struct {
 	CurrentStage    Stage
 	TaskID          string
@@ -38,6 +46,7 @@ type State struct {
 	StartTime       time.Time
 	BenchResults    []BenchResult  `json:"bench_results,omitempty"`
 	BaselineResults []BenchResult `json:"baseline_results,omitempty"`
+	History         []ASTSnapshot  `json:"history,omitempty"`
 }
 
 type Config struct {
@@ -54,6 +63,10 @@ type Config struct {
 	GolfThreshold      float64
 	BaselineResults    []BenchResult
 	AsyncTest          bool
+	Blindfold          bool
+	BlindfoldSalt      string
+	Browser            bool
+	BrowserInstructions string
 }
 
 type Result struct {

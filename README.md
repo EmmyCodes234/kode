@@ -46,6 +46,9 @@ Kode protects your repository with multiple levels of deterministic validation b
 4. **Blast Radius Gate**: Walks the dependency graph backward from every modified file. If downstream impact exceeds your configured threshold, the patch is blocked.
 5. **Architecture Gate**: Enforces declared module boundaries. Prevents the LLM from crossing microservice lines or importing banned packages.
 6. **Security Gate**: Automated vulnerability scanning on generated code. SQL injection, XSS, and hardcoded secrets are caught before they're committed.
+7. **Sandbox Replay Gate**: CPU-bounded dynamic execution simulation. Traps and terminates infinite loops, memory leaks, and unauthorized system/network sockets.
+8. **QR Code Tunnel Gate**: Boots secure public tunneling for dev servers, mapping the connection URL into a high-contrast terminal-scannable QR code for instant mobile layout verification.
+9. **Browser Verification Gate**: Synthesizes dynamic E2E Playwright scripts, boots dev servers, executes visual UI verification flows headlessly, records walkthrough videos, and auto-corrects or rolls back on layout/console failures.
 
 ---
 
@@ -65,8 +68,10 @@ Kode isn't just a wrapper script. It's a high-performance system engineered for 
 Verification is just the beginning. Kode introduces features no incumbent offers:
 
 - **Ghost Branches**: Why run one prompt when you can run three? Kode spawns parallel git worktrees, testing multiple speculative strategies simultaneously. It evaluates the patches, tests them, and merges the highest-scoring survivor back into your working tree.
-- **Blindfold Mode**: Enterprise-grade privacy. Kode SHA-256 obfuscates your identifiers (package names, functions, types) *before* LLM submission. Your proprietary logic is never exposed in plaintext to external models.
+- **Blindfold Mode**: Enterprise-grade privacy. Kode SHA-256 obfuscates your identifiers (package names, functions, types) *before* LLM submission, featuring **bidirectional symbol translation** (re-mapping names seamlessly on reply) and **comment/docstring de-identification**.
 - **Critique Lenses**: A pre-generation review layer that rejects structurally flawed ideas before the LLM wastes tokens generating them.
+- **Kode Command Voice**: Hands-free vocal pair-programming. Trigger recording directly inside your CLI shell, transcribe prompts using cloud/local speech APIs, and watch changes stream in real-time.
+- **Kode CIV PR Gateway**: Automate continuous integration and verification. A zero-human PR auto-merge pipeline configuration (`kode-civ.yml`) that approves and squash-merges pull requests only after passing all 9 safety gates and test suites.
 
 ---
 
@@ -108,11 +113,12 @@ To manually compile and build the workspace:
    ./bin/kode tui
    ```
 
-### Core Commands
+- Core Commands
 - `kode plan <task>` — Build a surgical context graph
 - `kode verify --input <file>` — Verify file content through the gate pipeline
 - `kode generate <prompt>` — Generate patches via LLM
 - `kode loop <task>` — Full Plan→Generate→Verify→Apply→Test cycle with automatic rollback
+- `kode voice` — Record your vocal programming prompt, transcribe, and execute
 - `kode tui` — Launch the interactive Kode Terminal User Interface
 
 ---

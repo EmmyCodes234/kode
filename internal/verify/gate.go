@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/kode/kode/internal/graph"
+	"github.com/kode/kode/internal/telemetry"
 )
 
 type Gate struct {
@@ -18,6 +20,8 @@ type Gate struct {
 	blastRadius    *BlastRadiusChecker
 	security       *SecurityChecker
 	staticAnalysis *StaticAnalysisChecker
+	sandbox        *SandboxChecker
+	browser        *BrowserGate
 }
 
 func NewGate(projectRoot string) *Gate {
@@ -29,6 +33,8 @@ func NewGate(projectRoot string) *Gate {
 		architecture:   NewArchitectureChecker(),
 		security:       NewSecurityChecker(),
 		staticAnalysis: NewStaticAnalysisChecker(projectRoot),
+		sandbox:        NewSandboxChecker(),
+		browser:        NewBrowserGate(projectRoot),
 	}
 }
 
@@ -50,7 +56,33 @@ func (g *Gate) SecurityBinaryPath() string {
 	return g.security.BinaryPath()
 }
 
-func (g *Gate) Verify(ctx context.Context, req VerifyRequest) (*Verdict, error) {
+func (g *Gate) Verify(ctx context.Context, req VerifyRequest) (v *Verdict, err error) {
+	telemetryClient := telemetry.NewPostHogClient(req.ProjectRoot)
+	telemetryClient.Track("verify_start", map[string]interface{}{
+		"diff_id": req.DiffID,
+	})
+
+	defer func() {
+		overall := "FAIL"
+		if v != nil && v.Overall == StatusPass {
+			overall = "PASS"
+		}
+		failedGate := ""
+		if v != nil {
+			for _, res := range v.Results {
+				if res.Status == StatusFail {
+					failedGate = res.CheckName
+					break
+				}
+			}
+		}
+		telemetryClient.Track("verify_completed", map[string]interface{}{
+			"diff_id":     req.DiffID,
+			"overall":     overall,
+			"failed_gate": failedGate,
+		})
+	}()
+
 	fmt.Fprintf(os.Stderr, "KODE_GATE: diff_applier\n")
 	modifiedFiles, err := g.diffApplier.ApplyInMemory(req.Diff, req.OriginalFiles)
 	if err != nil {
@@ -196,6 +228,46 @@ func (g *Gate) Verify(ctx context.Context, req VerifyRequest) (*Verdict, error) 
 				verdict.Overall = StatusFail
 				return verdict, nil
 			}
+		}
+	}
+
+	// Check 7: Sandbox Replay — runs simulated execution to catch runtime infinite loops and crashes
+	fmt.Fprintf(os.Stderr, "KODE_GATE: sandbox\n")
+	if g.sandbox != nil {
+		for path, content := range modifiedFiles {
+			result := g.sandbox.CheckFile(path, content)
+			verdict.Results = append(verdict.Results, result)
+			if result.Status == StatusFail {
+				verdict.Overall = StatusFail
+				return verdict, nil
+			}
+		}
+	}
+
+	// Check 8: Browser Verification — conditionally engaged based on three layers
+	engageBrowser := req.Browser
+	if !engageBrowser {
+		if cfg, err := LoadProjectConfig(req.ProjectRoot); err == nil && cfg.Engine != nil && cfg.Engine.BrowserVerification {
+			engageBrowser = true
+		}
+	}
+	if !engageBrowser {
+		for path := range modifiedFiles {
+			ext := strings.ToLower(filepath.Ext(path))
+			if ext == ".html" || ext == ".tsx" || ext == ".jsx" || ext == ".ts" || ext == ".js" || ext == ".css" || ext == ".vue" {
+				engageBrowser = true
+				break
+			}
+		}
+	}
+
+	if engageBrowser && g.browser != nil {
+		fmt.Fprintf(os.Stderr, "KODE_GATE: browser_verification\n")
+		result := g.browser.Verify(ctx, "", req.BrowserInstructions)
+		verdict.Results = append(verdict.Results, result)
+		if result.Status == StatusFail {
+			verdict.Overall = StatusFail
+			return verdict, nil
 		}
 	}
 

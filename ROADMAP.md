@@ -105,8 +105,37 @@ kode stats    — Analyze gatekeeper audit log for failure patterns
 - [ ] Dynamic graph expansion — fetch missing symbols on demand
 - [ ] Better CLI output (colors, spinners, progress bars)
 - [ ] Install bun + node_modules automatically on first `kode tui`
-- [ ] Tree-sitter resolvers for Python/TypeScript support
 - [ ] Document modified TS files for upstream sync
+
+---
+
+## Phase 8: Enterprise Dominance (v4.0.0 — Unicorn Roadmap)
+
+- [x] **Blindfold Mode (Zero-Knowledge Obfuscation)**
+  - [x] Core two-pass AST-pattern de-identification engine (`internal/blindfold`)
+  - [x] Bidirectional symbol translator integration with LLM API requests
+  - [x] Comment/Docstring de-identification to generic mathematical/behavioral functional specs
+- [x] **Gate 7: "Live-Fire" Sandbox Replay**
+  - [x] Sub-50ms local WebAssembly (WASM) / Docker sandboxed runtime container
+  - [x] Heap profiling to detect and block infinite loops & memory leaks
+  - [x] Network socket monitoring to prevent malicious data exfiltration
+- [x] **"Zero-Human" PR Gateway (Kode CIV)**
+  - [x] Continuous Integration & Verification (CIV) GitHub Action/GitLab Runner
+  - [x] Multi-gate auto-merge protocol for verified, compilation-guaranteed patches
+- [ ] **Living Spec Sync**
+  - [ ] Bidirectional AST-to-Specification compiler contract
+  - [ ] Automated updates to Mintlify docs (`docs.trykode.xyz`) on semantic drift
+- [x] **Gate 7: Dynamic QR Code Tunnel Preview Upgrade**
+  - [x] Tunnel localhost to public secure endpoint via localhost.run
+  - [x] Render high-contrast Unicode block scannable QR Code matrix in the terminal console
+- [x] **Gate 8: Headless Browser Verification**
+  - [x] Build automated dev server booter and port binder detector
+  - [x] Create serverless Playwright E2E step and JS script execution runner
+  - [x] Sync screenshots and walkthrough recordings for visual proof walkthroughs
+- [x] **Kode Command Voice: Voice-to-Action Bridge**
+  - [x] Zero-CGo native audio capture backend (Win32 winmm, ALSA arecord, Mac AppleScript CoreAudio)
+  - [x] Cloud/local transcription integration and execution mapping loop
+
 
 ---
 
