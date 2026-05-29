@@ -249,7 +249,7 @@ export default function Docs() {
                   ['Ctrl + C', 'Safely exits the terminal workspace.'],
                 ].map(([key, action]) => (
                   <div key={key} style={{ display: 'flex', gap: 16 }}>
-                    <kbd style={{ background: '#1c1b22', border: '1px solid var(--hairline-strong)', padding: '2px 8px', borderRadius: 4, fontFamily: 'var(--font-mono)', minWidth: 100, textAlign: 'center', color: 'var(--ink)' }}>{key}</kbd>
+                    <kbd style={{ background: 'var(--surface-card)', border: '1px solid var(--hairline-strong)', padding: '2px 8px', borderRadius: 4, fontFamily: 'var(--font-mono)', minWidth: 100, textAlign: 'center', color: 'var(--ink)' }}>{key}</kbd>
                     <span style={{ color: 'var(--body)' }}>{action}</span>
                   </div>
                 ))}
