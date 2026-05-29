@@ -72,22 +72,41 @@ Verification is just the beginning. Kode introduces features no incumbent offers
 
 ## Installation & Quick Start
 
-Kode is a **Bring Your Own Key (BYOK)** platform. You provide the API key, we provide the engine. 
+Kode is a **Bring Your Own Key (BYOK)** platform. You provide the API key, we provide the engine.
 
-### 1. Build the Engine
+### 1. Unified Install Command (Recommended)
+Get the prebuilt Go binaries and automated setup scripts using one command:
+
+- **macOS / Linux**:
+  ```bash
+  curl -fsSL https://raw.githubusercontent.com/sicario-labs/kode/master/script/install.sh | bash
+  ```
+
+- **Windows (PowerShell)**:
+  ```powershell
+  irm https://raw.githubusercontent.com/sicario-labs/kode/master/script/install.ps1 | iex
+  ```
+
+### 2. NPM Package
+Install globally via NPM:
 ```bash
-go build -o bin/kode ./cmd/kode
+npm install -g @sicario-labs/kode
 ```
 
-### 2. Launch the TUI
-Install the frontend dependencies and launch the interactive React-based Terminal UI:
-```bash
-npm install -g bun
-cd vendored/opencode
-bun install
-cd ../..
-./bin/kode tui
-```
+### 3. Build from Source (Alternative)
+To manually compile and build the workspace:
+1. Build the Go engine:
+   ```bash
+   go build -o bin/kode ./cmd/kode
+   ```
+2. Set up the TUI dependencies:
+   ```bash
+   npm install -g bun
+   cd third_party/opencode
+   bun install
+   cd ../..
+   ./bin/kode tui
+   ```
 
 ### Core Commands
 - `kode plan <task>` — Build a surgical context graph

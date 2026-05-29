@@ -112,18 +112,33 @@ export default function Docs() {
             <div id="installation" className="docs-section">
               <div className="heading-md" style={{ marginBottom: 16 }}>Installation & Setup</div>
               
-              <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>1. Building the Go Binary</h3>
-              <p className="body-md" style={{ marginBottom: 16 }}>Compile the Go CLI orchestrator from the project root:</p>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>1. Unified Install Command (Recommended)</h3>
+              <p className="body-md" style={{ marginBottom: 16 }}>Retrieve prebuilt Go binaries and configure the environment automatically:</p>
+              <h4 style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>macOS & Linux:</h4>
+              <CodeBlock>
+                <span className="prompt-sym">$</span>
+                <code>curl -fsSL https://raw.githubusercontent.com/sicario-labs/kode/master/script/install.sh | bash</code>
+              </CodeBlock>
+              <h4 style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 8, marginTop: 16 }}>Windows (PowerShell):</h4>
+              <CodeBlock>
+                <span className="prompt-sym">&gt;</span>
+                <code>irm https://raw.githubusercontent.com/sicario-labs/kode/master/script/install.ps1 | iex</code>
+              </CodeBlock>
+
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 12, marginTop: 28 }}>2. NPM Package</h3>
+              <p className="body-md" style={{ marginBottom: 16 }}>Install globally via npm to handle binaries and environment paths automatically:</p>
+              <CodeBlock>
+                <span className="prompt-sym">$</span>
+                <code>npm install -g @sicario-labs/kode</code>
+              </CodeBlock>
+
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 12, marginTop: 28 }}>3. Build from Source (Alternative)</h3>
+              <p className="body-md" style={{ marginBottom: 12 }}>Compile Go binary orchestrator:</p>
               <CodeBlock>
                 <span className="prompt-sym">$</span>
                 <code>go build -o bin/kode ./cmd/kode</code>
               </CodeBlock>
-              <p className="body-md" style={{ marginBottom: 24 }}>
-                This creates a single executable file in `bin/kode` (or `bin/kode.exe` on Windows).
-              </p>
-
-              <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 12, marginTop: 24 }}>2. TUI Setup (Requires Node.js & Bun)</h3>
-              <p className="body-md" style={{ marginBottom: 16 }}>Install the globally required package manager and build the frontend assets:</p>
+              <p className="body-md" style={{ marginBottom: 12, marginTop: 16 }}>Install globally required node manager and build frontend workspace assets:</p>
               <CodeBlock>
                 <span className="prompt-sym">$</span>
                 <code>npm install -g bun</code>
@@ -132,9 +147,7 @@ export default function Docs() {
                 <span className="prompt-sym">$</span>
                 <code>cd third_party/opencode && bun install && cd ../..</code>
               </CodeBlock>
-
-              <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 12, marginTop: 24 }}>3. Run the TUI</h3>
-              <p className="body-md" style={{ marginBottom: 16 }}>Initialize TUI with interactive terminal controls:</p>
+              <p style={{ marginTop: 16 }} className="body-md">Launch the interface:</p>
               <CodeBlock>
                 <span className="prompt-sym">$</span>
                 <code>./bin/kode tui</code>
@@ -157,7 +170,7 @@ export default function Docs() {
                   ['5. Architecture Gate', 'Enforces strict modular boundaries. Checks imports against modular layers in the configuration (e.g. preventing database layers from importing route handlers).'],
                   ['6. Security Gate', 'Scans files using Sicario SAST engine. Parses generated AST structure and flags potential vulnerabilities (e.g. SQL injection, hardcoded secrets, XSS) before writes occur.'],
                 ].map(([gate, desc]) => (
-                  <div key={gate} style={{ padding: '16px', background: '#09080d', borderRadius: 8, border: '1px solid var(--hairline-strong)' }}>
+                  <div key={gate} style={{ padding: '16px', background: 'var(--surface-card)', borderRadius: 8, border: '1px solid var(--hairline-strong)' }}>
                     <div style={{ color: 'var(--ink)', fontWeight: 700, fontSize: 16, marginBottom: 8 }}>{gate}</div>
                     <p style={{ color: 'var(--body)', fontSize: 14, margin: 0, lineHeight: 1.6 }}>{desc}</p>
                   </div>
