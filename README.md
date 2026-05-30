@@ -129,4 +129,4 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## License
 
-Kode is released under the [MIT License](LICENSE).
+The core Kode engine (CLI, TUI, internal modules, and web app) is released under the [MIT License](LICENSE). The LLM gateway and routing proxy (`cmd/gateway/` and `internal/gateway/`) are licensed under the [AGPL-3.0 License](LICENSE-GATEWAY).
