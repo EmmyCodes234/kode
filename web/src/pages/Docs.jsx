@@ -24,6 +24,7 @@ export default function Docs() {
     { id: 'config', label: 'Configuration Specification' },
     { id: 'tui', label: 'Interactive TUI' },
     { id: 'advanced', label: 'Advanced Features' },
+    { id: 'license', label: 'License & Boundaries' },
   ]
 
   useEffect(() => {
@@ -278,6 +279,22 @@ export default function Docs() {
               <p className="body-md" style={{ marginBottom: 20 }}>
                 Runs competitive benchmark swarms via `kode golf [file]`. Pits multiple optimization paths (concurrency, memory consumption, algorithmic Big-O) against baseline test benchmarks and merges the winner.
               </p>
+            </div>
+
+            {/* Section 8: License & Boundaries */}
+            <div id="license" className="docs-section">
+              <div className="heading-md" style={{ marginBottom: 16 }}>License & Boundaries</div>
+              <p className="body-md" style={{ marginBottom: 20 }}>
+                Kode is dual-licensed under the MIT License and the GNU Affero General Public License v3.0 (AGPL-3.0).
+              </p>
+              <ul style={{ paddingLeft: 20, color: 'var(--body)', lineHeight: 1.7, marginBottom: 32 }}>
+                <li style={{ marginBottom: 12 }}>
+                  <strong>MIT License:</strong> The core CLI engine, TUI, and static analysis verification packages.
+                </li>
+                <li style={{ marginBottom: 12 }}>
+                  <strong>AGPL-3.0 License:</strong> The LLM gateway and routing proxy server (`cmd/gateway` and `internal/gateway`).
+                </li>
+              </ul>
             </div>
           </div>
 
